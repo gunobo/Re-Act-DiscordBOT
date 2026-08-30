@@ -3,8 +3,8 @@
 {% block content %}
 <h1>카테고리 템플릿 관리</h1>
 <p class="muted">
-  대회를 만들 때 선택할 수 있는 카테고리 목록입니다. 템플릿 문구에는
-  <code>{title} {description} {category_name} {deadline} {capacity}</code> 변수를 쓸 수 있습니다.
+  대회를 만들 때 선택할 수 있는 카테고리 목록입니다. 카테고리 하나는 여러 개의 디스코드 채널을
+  가질 수 있습니다 (예: 공지/자유/질문). 채널 구성은 각 카테고리를 클릭해서 설정하세요.
 </p>
 
 <div class="card">
@@ -12,28 +12,25 @@
   <form method="post" action="/admin/categories/add">
     <label>카테고리 이름</label>
     <input type="text" name="name" required placeholder="예: 웹개발" />
-    <label>템플릿 문구</label>
-    <textarea name="template_text" rows="6">{{ default_template }}</textarea>
     <div style="margin-top:14px"><button type="submit">추가</button></div>
   </form>
 </div>
 
-{% for c in categories %}
-<div class="card">
-  <form method="post" action="/admin/categories/update/{{ c.id }}">
-    <label>카테고리 이름</label>
-    <input type="text" name="name" value="{{ c.name }}" required />
-    <label>템플릿 문구</label>
-    <textarea name="template_text" rows="6">{{ c.template_text }}</textarea>
-    <div style="margin-top:14px; display:flex; gap:8px">
-      <button type="submit">저장</button>
-    </div>
-  </form>
-  <form method="post" action="/admin/categories/delete/{{ c.id }}" onsubmit="return confirm('삭제하시겠습니까?')" style="margin-top:8px">
-    <button type="submit" class="danger">카테고리 삭제</button>
-  </form>
-</div>
-{% else %}
-<p class="muted">등록된 카테고리가 없습니다.</p>
-{% endfor %}
+<table>
+  <tr><th>카테고리 이름</th><th>채널 수</th><th></th></tr>
+  {% for c in categories %}
+  <tr>
+    <td><a href="/admin/categories/{{ c.id }}" style="color:inherit">{{ c.name }}</a></td>
+    <td class="muted">{{ channel_counts.get(c.id, 0) }}개</td>
+    <td style="display:flex; gap:6px">
+      <a class="btn secondary" href="/admin/categories/{{ c.id }}">채널 관리</a>
+      <form method="post" action="/admin/categories/delete/{{ c.id }}" onsubmit="return confirm('삭제하면 채널 구성도 함께 삭제됩니다. 계속할까요?')">
+        <button type="submit" class="danger">삭제</button>
+      </form>
+    </td>
+  </tr>
+  {% else %}
+  <tr><td colspan="3" class="muted">등록된 카테고리가 없습니다.</td></tr>
+  {% endfor %}
+</table>
 {% endblock %}

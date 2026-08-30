@@ -207,6 +207,22 @@ async def edit_message(
         resp.raise_for_status()
 
 
+async def delete_message(channel_id: str, message_id: str) -> None:
+    """공지 삭제 등 정리(cleanup) 용도라, 실패해도 예외를 던지지 않고 로그만 남긴다."""
+    if not settings.discord_configured:
+        print(f"[discord_rest:mock] delete_message(channel={channel_id}, message={message_id})")
+        return
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            resp = await client.delete(
+                f"{DISCORD_API}/channels/{channel_id}/messages/{message_id}", headers=_headers()
+            )
+            if resp.status_code not in (200, 204, 404):
+                print(f"[discord_rest] 메시지 삭제 실패 (channel={channel_id}, message={message_id}): {resp.text}")
+    except httpx.HTTPError as exc:
+        print(f"[discord_rest] 메시지 삭제 중 네트워크 오류 (channel={channel_id}): {exc!r}")
+
+
 async def send_dm(user_id: str, content: str) -> None:
     """DM은 항상 '베스트 에포트'다 — 유저가 DM을 막아뒀거나 타임아웃이 나도
     호출부(참가 처리 등)의 핵심 로직을 절대 실패시키면 안 된다."""

@@ -4,8 +4,8 @@ from datetime import datetime
 from sqlmodel import Session, select
 
 from app import discord_rest
-from app.categories.models import DEFAULT_TEMPLATE_TEXT, CategoryTemplate
-from app.competitions.models import Competition, CompetitionCategory
+from app.categories import service as categories_service
+from app.competitions.models import Competition, CompetitionCategory, CompetitionCategoryChannel
 from app.core.config import settings
 from app.participation.models import Participation
 
@@ -17,9 +17,11 @@ def render_template(template_text: str, **kwargs) -> str:
     return template_text.format_map(safe)
 
 
-def build_embed(competition: Competition, comp_category: CompetitionCategory, participant_count: int) -> dict:
+def build_embed(
+    competition: Competition, comp_category: CompetitionCategory, template_text: str, participant_count: int
+) -> dict:
     rendered = render_template(
-        comp_category.template_text,
+        template_text,
         title=competition.title,
         description=competition.description,
         category_name=comp_category.name,
@@ -74,6 +76,25 @@ def list_categories_for_competition(session: Session, competition_id: int) -> li
     )
 
 
+def list_channels_for_category(session: Session, competition_category_id: int) -> list[CompetitionCategoryChannel]:
+    return list(
+        session.exec(
+            select(CompetitionCategoryChannel).where(
+                CompetitionCategoryChannel.competition_category_id == competition_category_id
+            )
+        )
+    )
+
+
+def get_join_channel(session: Session, competition_category_id: int) -> CompetitionCategoryChannel | None:
+    return session.exec(
+        select(CompetitionCategoryChannel).where(
+            CompetitionCategoryChannel.competition_category_id == competition_category_id,
+            CompetitionCategoryChannel.is_join_channel == True,  # noqa: E712
+        )
+    ).first()
+
+
 async def create_competition(
     session: Session,
     title: str,
@@ -92,7 +113,7 @@ async def create_competition(
     role_id = await discord_rest.create_role(settings.discord_guild_id, title)
     competition.discord_role_id = role_id
 
-    # 대회 전용 디스코드 카테고리(채널 묶음)를 만들고, 이 대회의 모든 참가 채널을 그 안에 생성한다.
+    # 대회 전용 디스코드 카테고리(채널 묶음)를 만들고, 이 대회의 모든 채널을 그 안에 생성한다.
     category_channel_id = await discord_rest.create_channel(
         settings.discord_guild_id, title, parent_id=None, channel_type=4
     )
@@ -102,35 +123,55 @@ async def create_competition(
     session.commit()
 
     for selection in selections:
-        template_text = DEFAULT_TEMPLATE_TEXT
-        if selection.get("category_template_id"):
-            template = session.get(CategoryTemplate, selection["category_template_id"])
-            if template:
-                template_text = template.template_text
-
         comp_category = CompetitionCategory(
             competition_id=competition.id,
             category_template_id=selection.get("category_template_id"),
             name=selection["name"],
-            template_text=template_text,
             capacity=selection["capacity"],
         )
         session.add(comp_category)
         session.commit()
         session.refresh(comp_category)
 
-        channel_id = await discord_rest.create_channel(
-            settings.discord_guild_id, comp_category.name, parent_id=category_channel_id
+        channel_defs = (
+            categories_service.list_channels_for_template(session, selection["category_template_id"])
+            if selection.get("category_template_id")
+            else []
         )
-        comp_category.discord_channel_id = channel_id
 
-        embed = build_embed(competition, comp_category, participant_count=0)
-        components = build_components(comp_category.id, disabled=False)
-        message_id = await discord_rest.send_message(channel_id, embed=embed, components=components)
-        comp_category.discord_message_id = message_id
+        for channel_def in channel_defs:
+            channel_name = f"{comp_category.name}-{channel_def.name}"
+            channel_id = await discord_rest.create_channel(
+                settings.discord_guild_id, channel_name, parent_id=category_channel_id
+            )
 
-        session.add(comp_category)
-        session.commit()
+            message_id = None
+            if channel_def.is_join_channel:
+                embed = build_embed(competition, comp_category, channel_def.template_text, participant_count=0)
+                components = build_components(comp_category.id, disabled=False)
+                message_id = await discord_rest.send_message(channel_id, embed=embed, components=components)
+            elif channel_def.template_text.strip():
+                rendered = render_template(
+                    channel_def.template_text,
+                    title=competition.title,
+                    description=competition.description,
+                    category_name=comp_category.name,
+                    deadline=deadline.strftime("%Y-%m-%d %H:%M"),
+                    capacity=comp_category.capacity,
+                )
+                message_id = await discord_rest.send_message(channel_id, content=rendered)
+
+            session.add(
+                CompetitionCategoryChannel(
+                    competition_category_id=comp_category.id,
+                    name=channel_def.name,
+                    template_text=channel_def.template_text,
+                    is_join_channel=channel_def.is_join_channel,
+                    discord_channel_id=channel_id,
+                    discord_message_id=message_id,
+                )
+            )
+            session.commit()
 
     return competition
 
@@ -143,8 +184,9 @@ async def delete_competition(session: Session, competition_id: int) -> None:
 
     comp_categories = list_categories_for_competition(session, competition_id)
     for comp_category in comp_categories:
-        if comp_category.discord_channel_id:
-            await discord_rest.delete_channel(comp_category.discord_channel_id)
+        for channel in list_channels_for_category(session, comp_category.id):
+            await discord_rest.delete_channel(channel.discord_channel_id)
+            session.delete(channel)
         for participation in session.exec(
             select(Participation).where(Participation.competition_category_id == comp_category.id)
         ):

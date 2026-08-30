@@ -101,11 +101,14 @@ async def join_competition(body: JoinRequest, session: Session = Depends(get_ses
         new_count = current_count + 1
         is_full = new_count >= comp_category.capacity
 
-        if comp_category.discord_channel_id and comp_category.discord_message_id:
-            embed = competitions_service.build_embed(competition, comp_category, new_count)
+        join_channel = competitions_service.get_join_channel(session, comp_category.id)
+        if join_channel and join_channel.discord_message_id:
+            embed = competitions_service.build_embed(
+                competition, comp_category, join_channel.template_text, new_count
+            )
             components = competitions_service.build_components(comp_category.id, disabled=is_full)
             await discord_rest.edit_message(
-                comp_category.discord_channel_id, comp_category.discord_message_id, embed, components
+                join_channel.discord_channel_id, join_channel.discord_message_id, embed, components
             )
 
         dm_text = f"'{competition.title} - {comp_category.name}' 대회에 참가 완료되었습니다!"

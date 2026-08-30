@@ -36,11 +36,14 @@ def update_notice(session: Session, notice_id: int, title: str, content: str) ->
         session.commit()
 
 
-def delete_notice(session: Session, notice_id: int) -> None:
+async def delete_notice(session: Session, notice_id: int) -> None:
     row = session.get(Notice, notice_id)
-    if row:
-        session.delete(row)
-        session.commit()
+    if not row:
+        return
+    if row.discord_channel_id and row.discord_message_id:
+        await discord_rest.delete_message(row.discord_channel_id, row.discord_message_id)
+    session.delete(row)
+    session.commit()
 
 
 async def publish_notice(session: Session, notice_id: int, channel_id: str) -> Notice | None:

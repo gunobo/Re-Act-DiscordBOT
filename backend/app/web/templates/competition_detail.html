@@ -28,17 +28,21 @@
   </form>
 </div>
 
-<h2>카테고리별 참가 현황</h2>
-<table>
-  <tr><th>카테고리</th><th>참가 인원</th><th>디스코드 채널</th></tr>
-  {% for cc, count in category_counts %}
-  <tr>
-    <td>{{ cc.name }}</td>
-    <td>{{ count }} / {{ cc.capacity }}</td>
-    <td class="muted">{{ cc.discord_channel_id }}</td>
-  </tr>
-  {% endfor %}
-</table>
+{% for cc, count, channels in category_counts %}
+<div class="card">
+  <h2 style="margin-top:0">{{ cc.name }} — {{ count }} / {{ cc.capacity }}명</h2>
+  <table>
+    <tr><th>채널</th><th>디스코드 채널 ID</th><th></th></tr>
+    {% for ch in channels %}
+    <tr>
+      <td>{{ ch.name }}</td>
+      <td class="muted">{{ ch.discord_channel_id }}</td>
+      <td>{% if ch.is_join_channel %}<span class="badge ok">참가 채널</span>{% endif %}</td>
+    </tr>
+    {% endfor %}
+  </table>
+</div>
+{% endfor %}
 
 <div class="card">
   <h2 style="margin-top:0">대회 삭제</h2>

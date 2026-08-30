@@ -246,22 +246,18 @@ async def admin_settings_save(
 def admin_categories(
     request: Request, admin: dict = Depends(require_admin), session: Session = Depends(get_session)
 ):
-    return render(
-        request,
-        "categories.html",
-        categories=categories_service.list_categories(session),
-        default_template=DEFAULT_TEMPLATE_TEXT,
-    )
+    categories = categories_service.list_categories(session)
+    channel_counts = {
+        c.id: len(categories_service.list_channels_for_template(session, c.id)) for c in categories
+    }
+    return render(request, "categories.html", categories=categories, channel_counts=channel_counts)
 
 
 @router.post("/admin/categories/add")
 def admin_categories_add(
-    name: str = Form(...),
-    template_text: str = Form(...),
-    admin: dict = Depends(require_admin),
-    session: Session = Depends(get_session),
+    name: str = Form(...), admin: dict = Depends(require_admin), session: Session = Depends(get_session)
 ):
-    categories_service.create_category(session, name, template_text)
+    categories_service.create_category(session, name)
     return RedirectResponse(url="/admin/categories", status_code=303)
 
 
@@ -269,11 +265,10 @@ def admin_categories_add(
 def admin_categories_update(
     category_id: int,
     name: str = Form(...),
-    template_text: str = Form(...),
     admin: dict = Depends(require_admin),
     session: Session = Depends(get_session),
 ):
-    categories_service.update_category(session, category_id, name, template_text)
+    categories_service.update_category(session, category_id, name)
     return RedirectResponse(url="/admin/categories", status_code=303)
 
 
@@ -283,6 +278,63 @@ def admin_categories_delete(
 ):
     categories_service.delete_category(session, category_id)
     return RedirectResponse(url="/admin/categories", status_code=303)
+
+
+@router.get("/admin/categories/{category_id}")
+def admin_category_detail(
+    category_id: int,
+    request: Request,
+    admin: dict = Depends(require_admin),
+    session: Session = Depends(get_session),
+):
+    category = categories_service.get_category(session, category_id)
+    if not category:
+        raise HTTPException(status_code=404)
+    return render(
+        request,
+        "category_detail.html",
+        category=category,
+        channels=categories_service.list_channels_for_template(session, category_id),
+        default_template=DEFAULT_TEMPLATE_TEXT,
+    )
+
+
+@router.post("/admin/categories/{category_id}/channels/add")
+def admin_category_channel_add(
+    category_id: int,
+    name: str = Form(...),
+    template_text: str = Form(""),
+    is_join_channel: bool = Form(False),
+    admin: dict = Depends(require_admin),
+    session: Session = Depends(get_session),
+):
+    categories_service.add_channel(session, category_id, name, template_text, is_join_channel)
+    return RedirectResponse(url=f"/admin/categories/{category_id}", status_code=303)
+
+
+@router.post("/admin/categories/{category_id}/channels/{channel_id}/update")
+def admin_category_channel_update(
+    category_id: int,
+    channel_id: int,
+    name: str = Form(...),
+    template_text: str = Form(""),
+    is_join_channel: bool = Form(False),
+    admin: dict = Depends(require_admin),
+    session: Session = Depends(get_session),
+):
+    categories_service.update_channel(session, channel_id, name, template_text, is_join_channel)
+    return RedirectResponse(url=f"/admin/categories/{category_id}", status_code=303)
+
+
+@router.post("/admin/categories/{category_id}/channels/{channel_id}/delete")
+def admin_category_channel_delete(
+    category_id: int,
+    channel_id: int,
+    admin: dict = Depends(require_admin),
+    session: Session = Depends(get_session),
+):
+    categories_service.delete_channel(session, channel_id)
+    return RedirectResponse(url=f"/admin/categories/{category_id}", status_code=303)
 
 
 # ---------- 대회 ----------
@@ -299,7 +351,13 @@ def admin_competitions(
 def admin_competitions_new(
     request: Request, admin: dict = Depends(require_admin), session: Session = Depends(get_session)
 ):
-    return render(request, "competition_new.html", categories=categories_service.list_categories(session))
+    categories = categories_service.list_categories(session)
+    channel_counts = {
+        c.id: len(categories_service.list_channels_for_template(session, c.id)) for c in categories
+    }
+    return render(
+        request, "competition_new.html", categories=categories, channel_counts=channel_counts
+    )
 
 
 @router.post("/admin/competitions/new")
@@ -348,7 +406,8 @@ def admin_competition_detail(
                 Participation.competition_category_id == cc.id
             )
         ).one()
-        category_counts.append((cc, count))
+        channels = competitions_service.list_channels_for_category(session, cc.id)
+        category_counts.append((cc, count, channels))
     return render(
         request,
         "competition_detail.html",
@@ -518,8 +577,8 @@ async def admin_notices_publish(
 
 
 @router.post("/admin/notices/{notice_id}/delete")
-def admin_notices_delete(
+async def admin_notices_delete(
     notice_id: int, admin: dict = Depends(require_admin), session: Session = Depends(get_session)
 ):
-    notices_service.delete_notice(session, notice_id)
+    await notices_service.delete_notice(session, notice_id)
     return RedirectResponse(url="/admin/notices", status_code=303)

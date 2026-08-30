@@ -20,10 +20,15 @@
     {% for c in categories %}
       <div class="category-row">
         <input type="checkbox" name="cat_{{ c.id }}_selected" value="1" style="width:auto" />
-        <label>{{ c.name }}</label>
+        <label>{{ c.name }} <span class="muted">({{ channel_counts.get(c.id, 0) }}개 채널)</span></label>
         <input type="number" name="cat_{{ c.id }}_capacity" min="1" value="20" />
         <span class="muted">명</span>
       </div>
+      {% if channel_counts.get(c.id, 0) == 0 %}
+        <p class="muted" style="margin:-8px 0 8px 30px">
+          ⚠️ 채널이 없어서 선택해도 아무것도 안 생깁니다. <a href="/admin/categories/{{ c.id }}">채널 먼저 추가</a>
+        </p>
+      {% endif %}
     {% else %}
       <p class="muted">먼저 <a href="/admin/categories">카테고리 템플릿</a>을 등록해주세요.</p>
     {% endfor %}
