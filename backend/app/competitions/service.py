@@ -109,13 +109,19 @@ async def create_competition(
     session.commit()
     session.refresh(competition)
 
-    # 대회 참가자에게 부여할 "대회명" 역할을 미리 만들어둔다.
+    # 대회 참가자에게 부여할 "대회명" 역할을 미리 만들어둔다. 카테고리를 이 역할에게만
+    # 보이는 비공개로 만들 때 필요해서 카테고리보다 먼저 생성한다.
     role_id = await discord_rest.create_role(settings.discord_guild_id, title)
     competition.discord_role_id = role_id
 
-    # 대회 전용 디스코드 카테고리(채널 묶음)를 만들고, 이 대회의 모든 채널을 그 안에 생성한다.
+    # 대회 전용 디스코드 카테고리(채널 묶음)를 만든다. @everyone에게는 안 보이고
+    # 대회 역할을 가진 사람(=참가에 성공한 사람)만 볼 수 있는 비공개 카테고리다.
     category_channel_id = await discord_rest.create_channel(
-        settings.discord_guild_id, title, parent_id=None, channel_type=4
+        settings.discord_guild_id,
+        title,
+        parent_id=None,
+        channel_type=4,
+        permission_overwrites=discord_rest.private_to_role_overwrites(settings.discord_guild_id, role_id),
     )
     competition.discord_category_channel_id = category_channel_id
 
@@ -140,10 +146,24 @@ async def create_competition(
         )
 
         for channel_def in channel_defs:
-            channel_name = f"{comp_category.name}-{channel_def.name}"
-            channel_id = await discord_rest.create_channel(
-                settings.discord_guild_id, channel_name, parent_id=category_channel_id
-            )
+            if channel_def.is_join_channel:
+                # 참가 신청 채널은 아직 역할이 없는 사람도 봐야 하니 비공개 카테고리
+                # 밖(서버 최상위)에 만든다.
+                channel_name = f"{title}-{comp_category.name}-{channel_def.name}"
+                channel_id = await discord_rest.create_channel(
+                    settings.discord_guild_id,
+                    channel_name,
+                    parent_id=None,
+                    channel_type=channel_def.channel_type,
+                )
+            else:
+                # 나머지 채널은 비공개 카테고리 안에 만들어 대회 역할을 가진 사람만 보게 한다.
+                channel_id = await discord_rest.create_channel(
+                    settings.discord_guild_id,
+                    channel_def.name,
+                    parent_id=category_channel_id,
+                    channel_type=channel_def.channel_type,
+                )
 
             message_id = None
             if channel_def.is_join_channel:
@@ -167,6 +187,7 @@ async def create_competition(
                     name=channel_def.name,
                     template_text=channel_def.template_text,
                     is_join_channel=channel_def.is_join_channel,
+                    channel_type=channel_def.channel_type,
                     discord_channel_id=channel_id,
                     discord_message_id=message_id,
                 )

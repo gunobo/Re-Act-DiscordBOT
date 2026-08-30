@@ -305,10 +305,11 @@ def admin_category_channel_add(
     name: str = Form(...),
     template_text: str = Form(""),
     is_join_channel: bool = Form(False),
+    channel_type: int = Form(0),
     admin: dict = Depends(require_admin),
     session: Session = Depends(get_session),
 ):
-    categories_service.add_channel(session, category_id, name, template_text, is_join_channel)
+    categories_service.add_channel(session, category_id, name, template_text, is_join_channel, channel_type)
     return RedirectResponse(url=f"/admin/categories/{category_id}", status_code=303)
 
 
@@ -319,10 +320,11 @@ def admin_category_channel_update(
     name: str = Form(...),
     template_text: str = Form(""),
     is_join_channel: bool = Form(False),
+    channel_type: int = Form(0),
     admin: dict = Depends(require_admin),
     session: Session = Depends(get_session),
 ):
-    categories_service.update_channel(session, channel_id, name, template_text, is_join_channel)
+    categories_service.update_channel(session, channel_id, name, template_text, is_join_channel, channel_type)
     return RedirectResponse(url=f"/admin/categories/{category_id}", status_code=303)
 
 

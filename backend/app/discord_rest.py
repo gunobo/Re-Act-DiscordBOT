@@ -133,8 +133,23 @@ async def set_nickname(guild_id: str, user_id: str, nickname: str) -> None:
             raise RuntimeError(f"닉네임 변경 실패 (user={user_id}): {resp.text}")
 
 
+VIEW_CHANNEL = 1 << 10
+
+
+def private_to_role_overwrites(guild_id: str, role_id: str) -> list[dict]:
+    """@everyone에게는 안 보이고, 지정한 역할만 볼 수 있게 하는 permission_overwrites."""
+    return [
+        {"id": guild_id, "type": 0, "deny": str(VIEW_CHANNEL), "allow": "0"},
+        {"id": role_id, "type": 0, "allow": str(VIEW_CHANNEL), "deny": "0"},
+    ]
+
+
 async def create_channel(
-    guild_id: str, name: str, parent_id: str | None = None, channel_type: int = 0
+    guild_id: str,
+    name: str,
+    parent_id: str | None = None,
+    channel_type: int = 0,
+    permission_overwrites: list[dict] | None = None,
 ) -> str:
     if not settings.discord_configured:
         cid = _mock_id()
@@ -143,6 +158,8 @@ async def create_channel(
     payload: dict = {"name": name[:100], "type": channel_type}
     if parent_id:
         payload["parent_id"] = parent_id
+    if permission_overwrites is not None:
+        payload["permission_overwrites"] = permission_overwrites
     async with httpx.AsyncClient() as client:
         resp = await client.post(
             f"{DISCORD_API}/guilds/{guild_id}/channels", headers=_headers(), json=payload

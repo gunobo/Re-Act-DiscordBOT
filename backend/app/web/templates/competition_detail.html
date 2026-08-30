@@ -32,12 +32,13 @@
 <div class="card">
   <h2 style="margin-top:0">{{ cc.name }} — {{ count }} / {{ cc.capacity }}명</h2>
   <table>
-    <tr><th>채널</th><th>디스코드 채널 ID</th><th></th></tr>
+    <tr><th>채널</th><th>종류</th><th>디스코드 채널 ID</th><th></th></tr>
     {% for ch in channels %}
     <tr>
       <td>{{ ch.name }}</td>
+      <td class="muted">{{ "음성" if ch.channel_type == 2 else "텍스트" }}</td>
       <td class="muted">{{ ch.discord_channel_id }}</td>
-      <td>{% if ch.is_join_channel %}<span class="badge ok">참가 채널</span>{% endif %}</td>
+      <td>{% if ch.is_join_channel %}<span class="badge ok">참가 채널 (공개)</span>{% else %}<span class="badge">비공개</span>{% endif %}</td>
     </tr>
     {% endfor %}
   </table>
