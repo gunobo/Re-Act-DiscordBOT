@@ -5,7 +5,7 @@
 <form method="post" action="{% if notice %}/admin/notices/{{ notice.id }}/edit{% else %}/admin/notices/new{% endif %}">
   <div class="card">
     <label>제목</label>
-    <input type="text" name="title" value="{{ notice.title if notice else '' }}" required />
+    <input type="text" id="notice-title" name="title" value="{{ notice.title if notice else '' }}" required />
     <label>
       내용
       <span class="muted">
@@ -13,7 +13,7 @@
         디스코드와 웹사이트 양쪽에 반영됩니다.)
       </span>
     </label>
-    <textarea name="content" rows="10" required>{{ notice.content if notice else '' }}</textarea>
+    <textarea id="notice-content" name="content" rows="10" required>{{ notice.content if notice else '' }}</textarea>
   </div>
   <button type="submit">저장</button>
 </form>
@@ -22,4 +22,43 @@
   <button type="submit" class="secondary">저장 후 디스코드에 게시</button>
 </form>
 {% endif %}
+
+<h2>디스코드 미리보기</h2>
+<p class="muted">타이핑하는 대로 실제 디스코드 임베드와 비슷하게 갱신됩니다 (정확히 동일하지는 않을 수 있어요).</p>
+<div class="discord-embed-preview">
+  <div class="discord-embed-title" id="preview-title"></div>
+  <div class="discord-embed-desc markdown-body" id="preview-content"></div>
+</div>
+
+<script>
+  function escapeHtml(text) {
+    return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  }
+
+  function renderDiscordMarkdown(text) {
+    let html = escapeHtml(text);
+    html = html.replace(/```([\s\S]*?)```/g, (m, code) => `<pre><code>${code}</code></pre>`);
+    html = html.replace(/`([^`]+)`/g, "<code>$1</code>");
+    html = html.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
+    html = html.replace(/(^|[^*])\*([^*]+?)\*(?!\*)/g, "$1<em>$2</em>");
+    html = html.replace(/~~(.+?)~~/g, "<del>$1</del>");
+    html = html.replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>');
+    html = html.replace(/^&gt;\s?(.*)$/gm, "<blockquote>$1</blockquote>");
+    html = html.replace(/^[-*] (.*)$/gm, "<li>$1</li>");
+    html = html.replace(/(<li>[\s\S]*?<\/li>\n?)+/g, (m) => `<ul>${m}</ul>`);
+    html = html.replace(/\n/g, "<br>");
+    return html;
+  }
+
+  function updatePreview() {
+    const title = document.getElementById("notice-title").value;
+    const content = document.getElementById("notice-content").value;
+    document.getElementById("preview-title").innerHTML = escapeHtml(title);
+    document.getElementById("preview-content").innerHTML = renderDiscordMarkdown(content);
+  }
+
+  document.getElementById("notice-title").addEventListener("input", updatePreview);
+  document.getElementById("notice-content").addEventListener("input", updatePreview);
+  updatePreview();
+</script>
 {% endblock %}
