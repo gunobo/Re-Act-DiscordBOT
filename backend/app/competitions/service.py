@@ -8,6 +8,7 @@ from app.categories import service as categories_service
 from app.competitions.models import Competition, CompetitionCategory, CompetitionCategoryChannel
 from app.core.config import settings
 from app.participation.models import Participation
+from app.settings_kv import service as settings_service
 
 EMBED_COLOR = 0x5865F2
 
@@ -145,41 +146,37 @@ async def create_competition(
             else []
         )
 
+        join_channel_id = settings_service.get_join_channel_id(session)
+
         for channel_def in channel_defs:
             if channel_def.is_join_channel:
-                # 참가 신청 채널은 아직 역할이 없는 사람도 봐야 하니 비공개 카테고리
-                # 밖(서버 최상위)에 만든다.
-                channel_name = f"{title}-{comp_category.name}-{channel_def.name}"
-                channel_id = await discord_rest.create_channel(
-                    settings.discord_guild_id,
-                    channel_name,
-                    parent_id=None,
-                    channel_type=channel_def.channel_type,
-                )
-            else:
-                # 나머지 채널은 비공개 카테고리 안에 만들어 대회 역할을 가진 사람만 보게 한다.
-                channel_id = await discord_rest.create_channel(
-                    settings.discord_guild_id,
-                    channel_def.name,
-                    parent_id=category_channel_id,
-                    channel_type=channel_def.channel_type,
-                )
-
-            message_id = None
-            if channel_def.is_join_channel:
+                # 참가 신청은 새 채널을 만들지 않고, 관리자가 설정에서 지정해둔
+                # 기존 채널에 정원/버튼 안내 메시지만 올린다.
+                if not join_channel_id:
+                    continue  # 참가 신청 채널이 설정 안 됐으면 이 항목은 건너뛴다.
+                channel_id = join_channel_id
                 embed = build_embed(competition, comp_category, channel_def.template_text, participant_count=0)
                 components = build_components(comp_category.id, disabled=False)
                 message_id = await discord_rest.send_message(channel_id, embed=embed, components=components)
-            elif channel_def.template_text.strip():
-                rendered = render_template(
-                    channel_def.template_text,
-                    title=competition.title,
-                    description=competition.description,
-                    category_name=comp_category.name,
-                    deadline=deadline.strftime("%Y-%m-%d %H:%M"),
-                    capacity=comp_category.capacity,
+            else:
+                # 공개 채널은 서버 최상위에, 비공개 채널은 대회 전용 카테고리 안에 만든다.
+                channel_id = await discord_rest.create_channel(
+                    settings.discord_guild_id,
+                    channel_def.name,
+                    parent_id=None if channel_def.is_public else category_channel_id,
+                    channel_type=channel_def.channel_type,
                 )
-                message_id = await discord_rest.send_message(channel_id, content=rendered)
+                message_id = None
+                if channel_def.template_text.strip():
+                    rendered = render_template(
+                        channel_def.template_text,
+                        title=competition.title,
+                        description=competition.description,
+                        category_name=comp_category.name,
+                        deadline=deadline.strftime("%Y-%m-%d %H:%M"),
+                        capacity=comp_category.capacity,
+                    )
+                    message_id = await discord_rest.send_message(channel_id, content=rendered)
 
             session.add(
                 CompetitionCategoryChannel(
@@ -187,6 +184,7 @@ async def create_competition(
                     name=channel_def.name,
                     template_text=channel_def.template_text,
                     is_join_channel=channel_def.is_join_channel,
+                    is_public=channel_def.is_join_channel or channel_def.is_public,
                     channel_type=channel_def.channel_type,
                     discord_channel_id=channel_id,
                     discord_message_id=message_id,
@@ -206,7 +204,13 @@ async def delete_competition(session: Session, competition_id: int) -> None:
     comp_categories = list_categories_for_competition(session, competition_id)
     for comp_category in comp_categories:
         for channel in list_channels_for_category(session, comp_category.id):
-            await discord_rest.delete_channel(channel.discord_channel_id)
+            if channel.is_join_channel:
+                # 참가 신청 채널은 여러 대회가 공유하는 기존 채널이라 채널 자체는 지우지
+                # 않고, 이 대회가 올린 메시지만 지운다.
+                if channel.discord_message_id:
+                    await discord_rest.delete_message(channel.discord_channel_id, channel.discord_message_id)
+            else:
+                await discord_rest.delete_channel(channel.discord_channel_id)
             session.delete(channel)
         for participation in session.exec(
             select(Participation).where(Participation.competition_category_id == comp_category.id)

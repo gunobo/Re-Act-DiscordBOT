@@ -10,6 +10,7 @@ KEY_VERIFIED_ROLE_IDS = "verified_role_ids"
 KEY_NICKNAME_FORMAT = "nickname_format"
 KEY_ADMIN_ROLE_ID = "admin_role_id"
 KEY_NOTICE_CHANNEL_ID = "notice_channel_id"
+KEY_JOIN_CHANNEL_ID = "join_channel_id"
 KEY_POINTS_PER_JOIN = "points_per_join"
 KEY_GITHUB_CHANNEL_ID = "github_channel_id"
 
@@ -65,6 +66,14 @@ def get_notice_channel_id(session: Session) -> str | None:
 
 def set_notice_channel_id(session: Session, channel_id: str | None) -> None:
     set_raw(session, KEY_NOTICE_CHANNEL_ID, channel_id or "")
+
+
+def get_join_channel_id(session: Session) -> str | None:
+    return get_raw(session, KEY_JOIN_CHANNEL_ID, "") or None
+
+
+def set_join_channel_id(session: Session, channel_id: str | None) -> None:
+    set_raw(session, KEY_JOIN_CHANNEL_ID, channel_id or "")
 
 
 def get_points_per_join(session: Session) -> int:

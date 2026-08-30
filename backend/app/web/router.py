@@ -211,6 +211,7 @@ async def admin_settings(
         nickname_format=settings_service.get_nickname_format(session),
         admin_role_id=settings_service.get_admin_role_id(session),
         notice_channel_id=settings_service.get_notice_channel_id(session),
+        join_channel_id=settings_service.get_join_channel_id(session),
         points_per_join=settings_service.get_points_per_join(session),
         github_channel_id=settings_service.get_github_channel_id(session),
         github_webhook_configured=bool(settings.github_webhook_secret),
@@ -230,6 +231,7 @@ async def admin_settings_save(
     )
     settings_service.set_admin_role_id(session, form.get("admin_role_id") or None)
     settings_service.set_notice_channel_id(session, form.get("notice_channel_id") or None)
+    settings_service.set_join_channel_id(session, form.get("join_channel_id") or None)
     try:
         points_per_join = int(form.get("points_per_join") or settings_service.DEFAULT_POINTS_PER_JOIN)
     except ValueError:
@@ -305,11 +307,14 @@ def admin_category_channel_add(
     name: str = Form(...),
     template_text: str = Form(""),
     is_join_channel: bool = Form(False),
+    is_public: bool = Form(False),
     channel_type: int = Form(0),
     admin: dict = Depends(require_admin),
     session: Session = Depends(get_session),
 ):
-    categories_service.add_channel(session, category_id, name, template_text, is_join_channel, channel_type)
+    categories_service.add_channel(
+        session, category_id, name, template_text, is_join_channel, is_public, channel_type
+    )
     return RedirectResponse(url=f"/admin/categories/{category_id}", status_code=303)
 
 
@@ -320,11 +325,14 @@ def admin_category_channel_update(
     name: str = Form(...),
     template_text: str = Form(""),
     is_join_channel: bool = Form(False),
+    is_public: bool = Form(False),
     channel_type: int = Form(0),
     admin: dict = Depends(require_admin),
     session: Session = Depends(get_session),
 ):
-    categories_service.update_channel(session, channel_id, name, template_text, is_join_channel, channel_type)
+    categories_service.update_channel(
+        session, channel_id, name, template_text, is_join_channel, is_public, channel_type
+    )
     return RedirectResponse(url=f"/admin/categories/{category_id}", status_code=303)
 
 

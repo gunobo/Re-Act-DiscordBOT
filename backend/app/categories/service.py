@@ -69,6 +69,7 @@ def add_channel(
     name: str,
     template_text: str,
     is_join_channel: bool,
+    is_public: bool = False,
     channel_type: int = 0,
 ) -> CategoryTemplateChannel:
     row = CategoryTemplateChannel(
@@ -76,6 +77,7 @@ def add_channel(
         name=name.strip(),
         template_text=template_text,
         is_join_channel=is_join_channel,
+        is_public=is_public,
         channel_type=channel_type,
     )
     if is_join_channel:
@@ -92,6 +94,7 @@ def update_channel(
     name: str,
     template_text: str,
     is_join_channel: bool,
+    is_public: bool = False,
     channel_type: int = 0,
 ) -> None:
     row = session.get(CategoryTemplateChannel, channel_id)
@@ -100,6 +103,7 @@ def update_channel(
     row.name = name.strip()
     row.template_text = template_text
     row.is_join_channel = is_join_channel
+    row.is_public = is_public
     row.channel_type = channel_type
     if is_join_channel:
         _unset_other_join_channels(session, row.category_template_id, keep_id=row.id)

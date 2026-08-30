@@ -36,9 +36,13 @@
     {% for ch in channels %}
     <tr>
       <td>{{ ch.name }}</td>
-      <td class="muted">{{ "음성" if ch.channel_type == 2 else "텍스트" }}</td>
+      <td class="muted">{% if ch.is_join_channel %}공유 채널{% else %}{{ "음성" if ch.channel_type == 2 else "텍스트" }}{% endif %}</td>
       <td class="muted">{{ ch.discord_channel_id }}</td>
-      <td>{% if ch.is_join_channel %}<span class="badge ok">참가 채널 (공개)</span>{% else %}<span class="badge">비공개</span>{% endif %}</td>
+      <td>
+        {% if ch.is_join_channel %}<span class="badge ok">참가 신청 (공유 채널)</span>
+        {% elif ch.is_public %}<span class="badge ok">공개</span>
+        {% else %}<span class="badge">비공개</span>{% endif %}
+      </td>
     </tr>
     {% endfor %}
   </table>

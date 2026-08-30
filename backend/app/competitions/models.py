@@ -33,6 +33,7 @@ class CompetitionCategoryChannel(SQLModel, table=True):
     name: str
     template_text: str = ""
     is_join_channel: bool = False
+    is_public: bool = False
     channel_type: int = 0
     discord_channel_id: str
     discord_message_id: str | None = None
