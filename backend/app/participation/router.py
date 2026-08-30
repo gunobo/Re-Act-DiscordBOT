@@ -8,10 +8,13 @@ from sqlmodel import Session, func, select
 from app import discord_rest
 from app.competitions import service as competitions_service
 from app.competitions.models import Competition, CompetitionCategory
+from app.core.config import settings
 from app.core.internal_auth import require_internal_key
 from app.db.session import get_session
 from app.members import service as members_service
 from app.participation.models import Participation
+from app.points import service as points_service
+from app.settings_kv import service as settings_service
 
 router = APIRouter(
     prefix="/internal/participation", tags=["participation"], dependencies=[Depends(require_internal_key)]
@@ -80,6 +83,21 @@ async def join_competition(body: JoinRequest, session: Session = Depends(get_ses
         session.add(Participation(competition_category_id=comp_category.id, discord_id=body.discord_id))
         session.commit()
 
+        if competition.discord_role_id:
+            await discord_rest.grant_role(
+                settings.discord_guild_id, body.discord_id, competition.discord_role_id
+            )
+
+        points = settings_service.get_points_per_join(session)
+        if points:
+            points_service.add_points(
+                session,
+                body.discord_id,
+                points,
+                reason=f"참가: {competition.title} - {comp_category.name}",
+                created_by="system",
+            )
+
         new_count = current_count + 1
         is_full = new_count >= comp_category.capacity
 
@@ -90,11 +108,9 @@ async def join_competition(body: JoinRequest, session: Session = Depends(get_ses
                 comp_category.discord_channel_id, comp_category.discord_message_id, embed, components
             )
 
-        await discord_rest.send_dm(
-            body.discord_id,
-            f"'{competition.title} - {comp_category.name}' 대회에 참가 완료되었습니다!",
-        )
+        dm_text = f"'{competition.title} - {comp_category.name}' 대회에 참가 완료되었습니다!"
+        if points:
+            dm_text += f" (+{points}P)"
+        await discord_rest.send_dm(body.discord_id, dm_text)
 
-        return JoinResponse(
-            ok=True, message=f"'{competition.title} - {comp_category.name}' 대회에 참가 완료되었습니다!"
-        )
+        return JoinResponse(ok=True, message=dm_text)

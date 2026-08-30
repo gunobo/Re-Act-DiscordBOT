@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% block title %}포인트/랭킹 - RE-ACT{% endblock %}
+{% block content %}
+<h1>포인트/랭킹</h1>
+<p class="muted">
+  대회 참가 시 자동으로 <strong>{{ points_per_join }}점</strong>이 지급됩니다 (설정에서 변경 가능).
+  아래에서 특정 부원에게 포인트를 수동으로 지급/차감할 수 있습니다 (출석, 기여 등).
+</p>
+
+<div class="card">
+  <h2 style="margin-top:0">포인트 지급/차감</h2>
+  <form method="post" action="/admin/points/award">
+    <label>디스코드 ID</label>
+    <input type="text" name="discord_id" required placeholder="부원 목록에서 디스코드ID 확인" />
+    <label>포인트 (차감은 음수로 입력, 예: -5)</label>
+    <input type="number" name="points" required value="10" />
+    <label>사유</label>
+    <input type="text" name="reason" required placeholder="예: 정기모임 출석" />
+    <div style="margin-top:14px"><button type="submit">적용</button></div>
+  </form>
+</div>
+
+<h2>랭킹</h2>
+<table>
+  <tr><th>순위</th><th>이름</th><th>학번</th><th>포인트</th></tr>
+  {% for row in leaderboard %}
+  <tr>
+    <td>{{ loop.index }}</td>
+    <td>{{ row.name }}</td>
+    <td>{{ row.student_id }}</td>
+    <td>{{ row.total_points }}</td>
+  </tr>
+  {% else %}
+  <tr><td colspan="4" class="muted">인증된 부원이 없습니다.</td></tr>
+  {% endfor %}
+</table>
+{% endblock %}

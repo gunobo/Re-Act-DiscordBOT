@@ -11,6 +11,10 @@ KEY_NICKNAME_FORMAT = "nickname_format"
 KEY_ADMIN_ROLE_ID = "admin_role_id"
 KEY_NOTICE_CHANNEL_ID = "notice_channel_id"
 KEY_COMPETITION_PARENT_CHANNEL_ID = "competition_parent_channel_id"
+KEY_POINTS_PER_JOIN = "points_per_join"
+KEY_GITHUB_CHANNEL_ID = "github_channel_id"
+
+DEFAULT_POINTS_PER_JOIN = 10
 
 
 def get_raw(session: Session, key: str, default: str = "") -> str:
@@ -70,3 +74,22 @@ def get_competition_parent_channel_id(session: Session) -> str | None:
 
 def set_competition_parent_channel_id(session: Session, channel_id: str | None) -> None:
     set_raw(session, KEY_COMPETITION_PARENT_CHANNEL_ID, channel_id or "")
+
+
+def get_points_per_join(session: Session) -> int:
+    try:
+        return int(get_raw(session, KEY_POINTS_PER_JOIN, str(DEFAULT_POINTS_PER_JOIN)))
+    except ValueError:
+        return DEFAULT_POINTS_PER_JOIN
+
+
+def set_points_per_join(session: Session, points: int) -> None:
+    set_raw(session, KEY_POINTS_PER_JOIN, str(points))
+
+
+def get_github_channel_id(session: Session) -> str | None:
+    return get_raw(session, KEY_GITHUB_CHANNEL_ID, "") or None
+
+
+def set_github_channel_id(session: Session, channel_id: str | None) -> None:
+    set_raw(session, KEY_GITHUB_CHANNEL_ID, channel_id or "")

@@ -5,7 +5,7 @@ const { isJoinButton, handleJoinButton } = require("./interactions/joinButton");
 const client = new Client({ intents: [GatewayIntentBits.Guilds] });
 client.commands = new Collection();
 
-for (const name of ["verify", "verifycode"]) {
+for (const name of ["verify", "verifycode", "points", "ranking"]) {
   const command = require(`./commands/${name}`);
   client.commands.set(command.data.name, command);
 }

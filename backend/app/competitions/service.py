@@ -88,6 +88,12 @@ async def create_competition(
     session.commit()
     session.refresh(competition)
 
+    # 대회 참가자에게 부여할 "대회명" 역할을 미리 만들어둔다.
+    role_id = await discord_rest.create_role(settings.discord_guild_id, title)
+    competition.discord_role_id = role_id
+    session.add(competition)
+    session.commit()
+
     parent_channel_id = settings_service.get_competition_parent_channel_id(session)
 
     for selection in selections:

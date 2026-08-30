@@ -1,7 +1,9 @@
 require("dotenv").config();
 const { REST, Routes } = require("discord.js");
 
-const commands = ["verify", "verifycode"].map((name) => require(`./commands/${name}`).data.toJSON());
+const commands = ["verify", "verifycode", "points", "ranking"].map(
+  (name) => require(`./commands/${name}`).data.toJSON()
+);
 
 const rest = new REST().setToken(process.env.DISCORD_TOKEN);
 

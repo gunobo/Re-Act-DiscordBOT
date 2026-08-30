@@ -5,7 +5,9 @@ from fastapi.staticfiles import StaticFiles
 
 from app.auth.router import router as auth_router
 from app.db.session import init_db
+from app.github_integration.router import router as github_router
 from app.participation.router import router as participation_router
+from app.points.router import router as points_router
 from app.verify.router import router as verify_router
 from app.web.router import router as web_router
 
@@ -19,6 +21,8 @@ app.include_router(web_router)
 app.include_router(auth_router)
 app.include_router(verify_router)
 app.include_router(participation_router)
+app.include_router(points_router)
+app.include_router(github_router)
 
 
 @app.on_event("startup")

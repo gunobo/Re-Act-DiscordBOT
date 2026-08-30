@@ -1,8 +1,11 @@
 from datetime import datetime
 from pathlib import Path
 
+import csv
+import io
+
 from fastapi import APIRouter, Depends, Form, HTTPException, Request
-from fastapi.responses import RedirectResponse
+from fastapi.responses import RedirectResponse, Response
 from fastapi.templating import Jinja2Templates
 from sqlmodel import Session, func, select
 
@@ -13,9 +16,12 @@ from app.competitions import service as competitions_service
 from app.core.config import settings
 from app.core.session_auth import get_current_admin, require_admin
 from app.db.session import get_session
+from app.member_attributes import service as attributes_service
 from app.members import service as members_service
+from app.members.models import Member
 from app.notices import service as notices_service
 from app.participation.models import Participation
+from app.points import service as points_service
 from app.settings_kv import service as settings_service
 
 router = APIRouter()
@@ -85,6 +91,7 @@ def admin_members(
         allowed_members=members_service.list_allowed_members(session),
         members=members,
         verified_emails=verified_emails,
+        attribute_definitions=attributes_service.list_definitions(session),
     )
 
 
@@ -126,6 +133,66 @@ async def admin_members_unverify(
     return RedirectResponse(url="/admin/members", status_code=303)
 
 
+# ---------- 부원 속성 (디스코드에는 반영되지 않는 내부 기록용 항목) ----------
+
+
+@router.get("/admin/attributes")
+def admin_attributes(
+    request: Request, admin: dict = Depends(require_admin), session: Session = Depends(get_session)
+):
+    return render(request, "attributes.html", definitions=attributes_service.list_definitions(session))
+
+
+@router.post("/admin/attributes/add")
+def admin_attributes_add(
+    name: str = Form(...), admin: dict = Depends(require_admin), session: Session = Depends(get_session)
+):
+    attributes_service.create_definition(session, name)
+    return RedirectResponse(url="/admin/attributes", status_code=303)
+
+
+@router.post("/admin/attributes/delete/{definition_id}")
+def admin_attributes_delete(
+    definition_id: int, admin: dict = Depends(require_admin), session: Session = Depends(get_session)
+):
+    attributes_service.delete_definition(session, definition_id)
+    return RedirectResponse(url="/admin/attributes", status_code=303)
+
+
+@router.get("/admin/members/{discord_id}/attributes")
+def admin_member_attributes_edit(
+    discord_id: str,
+    request: Request,
+    admin: dict = Depends(require_admin),
+    session: Session = Depends(get_session),
+):
+    member = members_service.get_member(session, discord_id)
+    if not member:
+        raise HTTPException(status_code=404)
+    return render(
+        request,
+        "member_attributes_edit.html",
+        member=member,
+        definitions=attributes_service.list_definitions(session),
+        values=attributes_service.get_values_for_member(session, discord_id),
+    )
+
+
+@router.post("/admin/members/{discord_id}/attributes")
+async def admin_member_attributes_save(
+    discord_id: str,
+    request: Request,
+    admin: dict = Depends(require_admin),
+    session: Session = Depends(get_session),
+):
+    form = await request.form()
+    for definition in attributes_service.list_definitions(session):
+        attributes_service.set_value(
+            session, discord_id, definition.id, form.get(f"attr_{definition.id}", "")
+        )
+    return RedirectResponse(url="/admin/members", status_code=303)
+
+
 # ---------- 설정 ----------
 
 
@@ -146,6 +213,10 @@ async def admin_settings(
         admin_role_id=settings_service.get_admin_role_id(session),
         notice_channel_id=settings_service.get_notice_channel_id(session),
         competition_parent_channel_id=settings_service.get_competition_parent_channel_id(session),
+        points_per_join=settings_service.get_points_per_join(session),
+        github_channel_id=settings_service.get_github_channel_id(session),
+        github_webhook_configured=bool(settings.github_webhook_secret),
+        web_base_url=settings.web_base_url,
         discord_configured=settings.discord_configured,
     )
 
@@ -164,6 +235,12 @@ async def admin_settings_save(
     settings_service.set_competition_parent_channel_id(
         session, form.get("competition_parent_channel_id") or None
     )
+    try:
+        points_per_join = int(form.get("points_per_join") or settings_service.DEFAULT_POINTS_PER_JOIN)
+    except ValueError:
+        points_per_join = settings_service.DEFAULT_POINTS_PER_JOIN
+    settings_service.set_points_per_join(session, points_per_join)
+    settings_service.set_github_channel_id(session, form.get("github_channel_id") or None)
     return RedirectResponse(url="/admin/settings", status_code=303)
 
 
@@ -278,8 +355,93 @@ def admin_competition_detail(
         ).one()
         category_counts.append((cc, count))
     return render(
-        request, "competition_detail.html", competition=competition, category_counts=category_counts
+        request,
+        "competition_detail.html",
+        competition=competition,
+        category_counts=category_counts,
+        attribute_definitions=attributes_service.list_definitions(session),
     )
+
+
+@router.get("/admin/competitions/{competition_id}/export.csv")
+def admin_competition_export_csv(
+    competition_id: int,
+    request: Request,
+    admin: dict = Depends(require_admin),
+    session: Session = Depends(get_session),
+):
+    competition = competitions_service.get_competition(session, competition_id)
+    if not competition:
+        raise HTTPException(status_code=404)
+
+    attr_ids = [int(v) for v in request.query_params.getlist("attr_ids") if v.isdigit()]
+    definitions = [
+        d for d in attributes_service.list_definitions(session) if d.id in attr_ids
+    ]
+    attribute_values = attributes_service.get_values_map(session, attr_ids)
+
+    comp_categories = competitions_service.list_categories_for_competition(session, competition_id)
+
+    buffer = io.StringIO()
+    writer = csv.writer(buffer)
+    writer.writerow(
+        ["카테고리", "학번", "이름", "디스코드ID", "참가일시"] + [d.name for d in definitions]
+    )
+    for cc in comp_categories:
+        rows = session.exec(
+            select(Participation, Member)
+            .join(Member, Member.discord_id == Participation.discord_id)
+            .where(Participation.competition_category_id == cc.id)
+            .order_by(Participation.joined_at)
+        ).all()
+        for participation, member in rows:
+            extra_columns = [
+                attribute_values.get((member.discord_id, d.id), "") for d in definitions
+            ]
+            writer.writerow(
+                [
+                    cc.name,
+                    member.student_id,
+                    member.name,
+                    member.discord_id,
+                    participation.joined_at.strftime("%Y-%m-%d %H:%M"),
+                ]
+                + extra_columns
+            )
+
+    csv_bytes = "﻿" + buffer.getvalue()  # 엑셀 한글 깨짐 방지용 BOM
+    return Response(
+        content=csv_bytes,
+        media_type="text/csv",
+        headers={"Content-Disposition": f"attachment; filename=competition_{competition_id}_participants.csv"},
+    )
+
+
+# ---------- 포인트/랭킹 ----------
+
+
+@router.get("/admin/points")
+def admin_points(
+    request: Request, admin: dict = Depends(require_admin), session: Session = Depends(get_session)
+):
+    return render(
+        request,
+        "points.html",
+        leaderboard=points_service.list_all_with_totals(session),
+        points_per_join=settings_service.get_points_per_join(session),
+    )
+
+
+@router.post("/admin/points/award")
+def admin_points_award(
+    discord_id: str = Form(...),
+    points: int = Form(...),
+    reason: str = Form(...),
+    admin: dict = Depends(require_admin),
+    session: Session = Depends(get_session),
+):
+    points_service.add_points(session, discord_id, points, reason, admin["discord_id"])
+    return RedirectResponse(url="/admin/points", status_code=303)
 
 
 # ---------- 공지 ----------

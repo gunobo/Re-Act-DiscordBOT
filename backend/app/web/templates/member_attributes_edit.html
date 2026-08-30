@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block title %}{{ member.name }} 속성 - RE-ACT{% endblock %}
+{% block content %}
+<a href="/admin/members" class="muted">&larr; 부원 목록으로</a>
+<h1>{{ member.name }} ({{ member.student_id }}) 속성</h1>
+
+{% if definitions %}
+<form method="post" action="/admin/members/{{ member.discord_id }}/attributes">
+  <div class="card">
+    {% for d in definitions %}
+      <label>{{ d.name }}</label>
+      <input type="text" name="attr_{{ d.id }}" value="{{ values.get(d.id, '') }}" />
+    {% endfor %}
+  </div>
+  <button type="submit">저장</button>
+</form>
+{% else %}
+<p class="muted">등록된 속성이 없습니다. <a href="/admin/attributes">속성 관리</a>에서 먼저 항목을 추가해주세요.</p>
+{% endif %}
+{% endblock %}

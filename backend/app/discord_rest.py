@@ -37,6 +37,19 @@ async def list_roles(guild_id: str) -> list[dict]:
         return [{"id": r["id"], "name": r["name"]} for r in resp.json()]
 
 
+async def create_role(guild_id: str, name: str) -> str:
+    if not settings.discord_configured:
+        rid = _mock_id()
+        print(f"[discord_rest:mock] create_role(name={name!r}) -> {rid}")
+        return rid
+    async with httpx.AsyncClient() as client:
+        resp = await client.post(
+            f"{DISCORD_API}/guilds/{guild_id}/roles", headers=_headers(), json={"name": name[:100]}
+        )
+        resp.raise_for_status()
+        return resp.json()["id"]
+
+
 async def list_channels(guild_id: str) -> list[dict]:
     if not settings.discord_configured:
         print(f"[discord_rest:mock] list_channels(guild_id={guild_id})")

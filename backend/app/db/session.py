@@ -15,6 +15,8 @@ def init_db() -> None:
     from app.competitions import models as _competitions_models  # noqa: F401
     from app.participation import models as _participation_models  # noqa: F401
     from app.notices import models as _notices_models  # noqa: F401
+    from app.points import models as _points_models  # noqa: F401
+    from app.member_attributes import models as _member_attributes_models  # noqa: F401
 
     SQLModel.metadata.create_all(engine)
 

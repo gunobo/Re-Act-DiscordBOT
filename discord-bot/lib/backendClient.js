@@ -40,4 +40,18 @@ function joinCompetition(competitionCategoryId, discordId) {
   });
 }
 
-module.exports = { startVerification, confirmVerification, joinCompetition };
+function getMyPoints(discordId) {
+  return backendFetch(`/internal/points/me?discord_id=${encodeURIComponent(discordId)}`);
+}
+
+function getLeaderboard(limit = 10) {
+  return backendFetch(`/internal/points/leaderboard?limit=${limit}`);
+}
+
+module.exports = {
+  startVerification,
+  confirmVerification,
+  joinCompetition,
+  getMyPoints,
+  getLeaderboard,
+};

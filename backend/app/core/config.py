@@ -36,6 +36,9 @@ class Settings(BaseSettings):
     verification_code_ttl_minutes: int = 10
     verification_max_attempts: int = 5
 
+    # GitHub 웹훅 (PR/이슈 알림)
+    github_webhook_secret: str = ""
+
     @property
     def super_admin_ids(self) -> list[str]:
         return [x.strip() for x in self.super_admin_discord_ids.split(",") if x.strip()]

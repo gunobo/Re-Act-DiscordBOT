@@ -56,6 +56,31 @@
     </select>
   </div>
 
+  <div class="card">
+    <h2 style="margin-top:0">대회 참가 포인트</h2>
+    <p class="muted">참가 버튼을 눌러 신청에 성공할 때마다 자동으로 지급할 포인트입니다.</p>
+    <input type="number" name="points_per_join" value="{{ points_per_join }}" />
+  </div>
+
+  <div class="card">
+    <h2 style="margin-top:0">GitHub 알림 채널</h2>
+    <p class="muted">
+      GitHub 저장소의 PR/이슈 알림을 받을 채널. 저장소 Settings → Webhooks에서
+      Payload URL을 <code>{{ web_base_url }}/webhooks/github</code>, Content type을
+      <code>application/json</code>, Secret을 backend의 <code>GITHUB_WEBHOOK_SECRET</code>과
+      동일하게 설정하고 이벤트로 Pull requests, Issues를 선택하세요.
+      {% if not github_webhook_configured %}
+        <br /><strong>GITHUB_WEBHOOK_SECRET이 비어있어 서명 검증 없이 동작 중입니다.</strong>
+      {% endif %}
+    </p>
+    <select name="github_channel_id">
+      <option value="">(선택 안 함)</option>
+      {% for c in text_channels %}
+        <option value="{{ c.id }}" {% if c.id == github_channel_id %}selected{% endif %}>#{{ c.name }}</option>
+      {% endfor %}
+    </select>
+  </div>
+
   <button type="submit">저장</button>
 </form>
 {% endblock %}

@@ -4,7 +4,7 @@
 카테고리별 채널과 "참가하기" 버튼이 자동으로 생성된다. 부원 화이트리스트, 공지, 대회, 각종
 설정은 관리용 웹(`react.bssm.dev`)에서 운영진이 관리한다.
 
-- `discord-bot/` — Node.js(discord.js) 슬래시 커맨드(`/인증`, `/인증확인`) + 참가 버튼 처리
+- `discord-bot/` — Node.js(discord.js) 슬래시 커맨드(`/인증`, `/인증확인`, `/포인트`, `/랭킹`) + 참가 버튼 처리
 - `backend/` — Python(FastAPI + SQLModel). 기능별 디렉토리(`app/<feature>/{models.py,router.py,service.py}`)
 - 두 서비스는 내부 HTTP API(`X-Internal-Key` 헤더)로 통신한다.
 
@@ -109,7 +109,16 @@ docker compose up -d --build
 5. **운영진**: `/admin/categories`에서 카테고리(예: 웹개발/앱개발/게임개발)와 안내 템플릿 등록.
 6. **운영진**: `/admin/competitions/new`에서 대회 등록 시 카테고리 선택 + 카테고리별 선착순 정원
    입력 → 카테고리마다 디스코드 채널이 자동 생성되고 "참가하기" 버튼이 달린 안내가 게시됨.
-7. **부원**: 버튼 클릭 → 인증 여부/정원 확인 → 성공 시 개인 DM으로 참가 완료 안내, 임베드의
-   참가 인원 수 갱신 (정원 도달 시 버튼 비활성화).
+7. **부원**: 버튼 클릭 → 인증 여부/정원 확인 → 성공 시 대회명과 같은 이름의 역할이 자동 부여되고
+   개인 DM으로 참가 완료 + 적립 포인트 안내, 임베드의 참가 인원 수 갱신 (정원 도달 시 버튼 비활성화).
 8. **운영진**: `/admin/notices`에서 공지 작성 후 "게시"하면 설정된 채널에 자동 전송, `/notices`
    공개 페이지에서도 확인 가능.
+9. **부원**: `/포인트`(본인 포인트 확인), `/랭킹`(상위 10명)으로 활동 포인트 확인. 참가 시
+   자동 지급되는 포인트 양은 `/admin/settings`에서 조절, 출석 등 수동 지급/차감은 `/admin/points`.
+10. **운영진**: `/admin/attributes`에서 부원별 추가 정보 항목(연락처, 전공 등)을 자유롭게
+    정의하고 `/admin/members`의 각 부원 "속성" 링크에서 값을 입력. 디스코드에는 반영되지 않으며,
+    대회 참가자 CSV를 내보낼 때 어떤 속성을 포함할지 체크박스로 선택할 수 있다.
+11. **운영진**: 대회 상세 페이지(`/admin/competitions/{id}`)에서 참가자 명단을 CSV로 다운로드.
+12. **GitHub 연동**: 저장소 Settings → Webhooks에서 Payload URL을
+    `https://react.bssm.dev/webhooks/github`, Secret을 `GITHUB_WEBHOOK_SECRET`과 동일하게,
+    이벤트로 Pull requests/Issues를 등록하면 `/admin/settings`에서 지정한 채널에 PR/이슈 알림이 온다.

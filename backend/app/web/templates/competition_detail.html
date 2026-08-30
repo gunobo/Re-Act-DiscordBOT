@@ -4,7 +4,29 @@
 <a href="/admin/competitions" class="muted">&larr; 목록으로</a>
 <h1>{{ competition.title }}</h1>
 <p class="muted">마감: {{ competition.deadline.strftime("%Y-%m-%d %H:%M") }}</p>
+<p class="muted">참가자 부여 역할 ID: {{ competition.discord_role_id or "-" }}</p>
 <div class="card" style="white-space:pre-wrap">{{ competition.description }}</div>
+
+<div class="card">
+  <h2 style="margin-top:0">참가자 명단 CSV 다운로드</h2>
+  <form method="get" action="/admin/competitions/{{ competition.id }}/export.csv">
+    {% if attribute_definitions %}
+      <p class="muted">CSV에 함께 포함할 부원 속성을 선택하세요 (디스코드에는 반영되지 않는 항목).</p>
+      {% for d in attribute_definitions %}
+        <label style="display:flex; align-items:center; gap:8px; color: var(--text)">
+          <input type="checkbox" name="attr_ids" value="{{ d.id }}" style="width:auto" />
+          {{ d.name }}
+        </label>
+      {% endfor %}
+    {% else %}
+      <p class="muted">
+        기본 항목(학번/이름/디스코드ID/참가일시)만 내려받습니다.
+        <a href="/admin/attributes">속성 관리</a>에서 항목을 추가하면 선택해서 포함할 수 있습니다.
+      </p>
+    {% endif %}
+    <div style="margin-top:14px"><button type="submit">다운로드</button></div>
+  </form>
+</div>
 
 <h2>카테고리별 참가 현황</h2>
 <table>

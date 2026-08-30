@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block title %}부원 속성 관리 - RE-ACT{% endblock %}
+{% block content %}
+<h1>부원 속성 관리</h1>
+<p class="muted">
+  관리자가 자유롭게 정의하는 부원별 추가 정보(예: 전공, 연락처, 티셔츠 사이즈)입니다.
+  디스코드 역할/닉네임에는 반영되지 않고, <a href="/admin/members">부원 관리</a> 페이지에서
+  값을 입력하며 대회 참가자 CSV를 내보낼 때 선택적으로 포함할 수 있습니다.
+</p>
+
+<div class="card">
+  <h2 style="margin-top:0">속성 추가</h2>
+  <form method="post" action="/admin/attributes/add">
+    <label>속성 이름</label>
+    <input type="text" name="name" required placeholder="예: 연락처" />
+    <div style="margin-top:14px"><button type="submit">추가</button></div>
+  </form>
+</div>
+
+<table>
+  <tr><th>속성 이름</th><th></th></tr>
+  {% for d in definitions %}
+  <tr>
+    <td>{{ d.name }}</td>
+    <td>
+      <form method="post" action="/admin/attributes/delete/{{ d.id }}" onsubmit="return confirm('삭제하면 저장된 값도 함께 삭제됩니다. 계속할까요?')">
+        <button type="submit" class="danger">삭제</button>
+      </form>
+    </td>
+  </tr>
+  {% else %}
+  <tr><td colspan="2" class="muted">등록된 속성이 없습니다.</td></tr>
+  {% endfor %}
+</table>
+{% endblock %}

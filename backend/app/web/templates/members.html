@@ -2,6 +2,7 @@
 {% block title %}부원 관리 - RE-ACT{% endblock %}
 {% block content %}
 <h1>부원 관리</h1>
+<a class="btn secondary" href="/admin/attributes">부원 속성 관리 ({{ attribute_definitions|length }}개)</a>
 
 <div class="card">
   <h2 style="margin-top:0">화이트리스트에 이메일 추가</h2>
@@ -53,7 +54,8 @@
     <td>{{ m.email }}</td>
     <td class="muted">{{ m.discord_id }}</td>
     <td class="muted">{{ m.verified_at.strftime("%Y-%m-%d") }}</td>
-    <td>
+    <td style="display:flex; gap:6px">
+      <a class="btn secondary" href="/admin/members/{{ m.discord_id }}/attributes">속성</a>
       <form class="inline" method="post" action="/admin/members/unverify" onsubmit="return confirm('인증을 해제하시겠습니까? (역할이 회수됩니다)')">
         <input type="hidden" name="discord_id" value="{{ m.discord_id }}" />
         <button type="submit" class="danger">인증해제</button>
