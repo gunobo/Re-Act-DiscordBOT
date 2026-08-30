@@ -28,9 +28,26 @@ router = APIRouter()
 
 templates = Jinja2Templates(directory=str(Path(__file__).parent / "templates"))
 
+_STATIC_DIR = Path(__file__).parent / "static"
+
+
+def _static_version() -> str:
+    """정적 파일(CSS/JS)이 바뀔 때마다 캐시를 무력화하기 위한 버전 문자열.
+    빌드마다(파일 mtime 기준) 바뀌므로 브라우저/Cloudflare 엣지 캐시에 옛날
+    style.css가 남아있는 문제를 막아준다."""
+    try:
+        newest = max(f.stat().st_mtime for f in _STATIC_DIR.rglob("*") if f.is_file())
+        return str(int(newest))
+    except ValueError:
+        return "0"
+
+
+STATIC_VERSION = _static_version()
+
 
 def render(request: Request, name: str, **ctx):
     ctx.setdefault("admin", get_current_admin(request))
+    ctx.setdefault("static_version", STATIC_VERSION)
     return templates.TemplateResponse(request, name, ctx)
 
 
