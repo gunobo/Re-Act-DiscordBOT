@@ -18,8 +18,12 @@
   <button type="submit">저장</button>
 </form>
 {% if notice and not notice.published %}
-<form method="post" action="/admin/notices/{{ notice.id }}/publish" onsubmit="return confirm('디스코드에 게시하시겠습니까?')" style="margin-top:8px">
-  <button type="submit" class="secondary">저장 후 디스코드에 게시</button>
+<form method="post" action="/admin/notices/{{ notice.id }}/publish" onsubmit="return confirm('디스코드에 게시하시겠습니까?')" style="margin-top:8px; display:flex; align-items:center; gap:10px">
+  <button type="submit" class="secondary">디스코드에 게시</button>
+  <label class="muted" style="display:flex; align-items:center; gap:6px; margin:0">
+    <input type="checkbox" name="ping_everyone" value="on" style="width:auto" />
+    게시할 때 @everyone 멘션(알림)도 보내기
+  </label>
 </form>
 {% endif %}
 

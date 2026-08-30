@@ -13,7 +13,11 @@
     <td style="display:flex; gap:6px">
       <a class="btn secondary" href="/admin/notices/{{ n.id }}/edit">수정</a>
       {% if not n.published %}
-      <form class="inline" method="post" action="/admin/notices/{{ n.id }}/publish" onsubmit="return confirm('디스코드에 게시하시겠습니까?')">
+      <form class="inline" method="post" action="/admin/notices/{{ n.id }}/publish" onsubmit="return confirm('디스코드에 게시하시겠습니까?')" style="display:flex; align-items:center; gap:4px">
+        <label class="muted" style="display:flex; align-items:center; gap:4px; margin:0">
+          <input type="checkbox" name="ping_everyone" value="on" style="width:auto" />
+          @everyone
+        </label>
         <button type="submit">게시</button>
       </form>
       {% endif %}

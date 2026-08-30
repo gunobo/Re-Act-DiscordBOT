@@ -183,7 +183,11 @@ async def delete_channel(channel_id: str) -> None:
 
 
 async def send_message(
-    channel_id: str, embed: dict | None = None, components: list | None = None, content: str | None = None
+    channel_id: str,
+    embed: dict | None = None,
+    components: list | None = None,
+    content: str | None = None,
+    allowed_mentions: dict | None = None,
 ) -> str:
     if not settings.discord_configured:
         mid = _mock_id()
@@ -196,6 +200,8 @@ async def send_message(
         payload["embeds"] = [embed]
     if components:
         payload["components"] = components
+    if allowed_mentions is not None:
+        payload["allowed_mentions"] = allowed_mentions
     async with httpx.AsyncClient() as client:
         resp = await client.post(
             f"{DISCORD_API}/channels/{channel_id}/messages", headers=_headers(), json=payload

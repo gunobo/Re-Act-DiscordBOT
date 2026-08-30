@@ -596,11 +596,14 @@ def admin_notices_edit(
 
 @router.post("/admin/notices/{notice_id}/publish")
 async def admin_notices_publish(
-    notice_id: int, admin: dict = Depends(require_admin), session: Session = Depends(get_session)
+    notice_id: int,
+    ping_everyone: bool = Form(False),
+    admin: dict = Depends(require_admin),
+    session: Session = Depends(get_session),
 ):
     channel_id = settings_service.get_notice_channel_id(session)
     if channel_id:
-        await notices_service.publish_notice(session, notice_id, channel_id)
+        await notices_service.publish_notice(session, notice_id, channel_id, ping_everyone)
     return RedirectResponse(url="/admin/notices", status_code=303)
 
 

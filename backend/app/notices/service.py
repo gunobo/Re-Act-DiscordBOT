@@ -55,12 +55,20 @@ async def delete_notice(session: Session, notice_id: int) -> None:
     session.commit()
 
 
-async def publish_notice(session: Session, notice_id: int, channel_id: str) -> Notice | None:
+async def publish_notice(
+    session: Session, notice_id: int, channel_id: str, ping_everyone: bool = False
+) -> Notice | None:
     row = session.get(Notice, notice_id)
     if not row:
         return None
     embed = {"title": row.title, "description": row.content, "color": EMBED_COLOR}
-    message_id = await discord_rest.send_message(channel_id, embed=embed)
+    content = "@everyone" if ping_everyone else None
+    # Discord는 content에 @everyone을 적어도 allowed_mentions로 명시적으로 허용하지
+    # 않으면 실제 알림(핑)을 보내지 않고 그냥 글자로만 표시한다.
+    allowed_mentions = {"parse": ["everyone"]} if ping_everyone else None
+    message_id = await discord_rest.send_message(
+        channel_id, embed=embed, content=content, allowed_mentions=allowed_mentions
+    )
     row.published = True
     row.discord_channel_id = channel_id
     row.discord_message_id = message_id
