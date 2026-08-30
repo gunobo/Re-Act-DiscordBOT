@@ -207,12 +207,10 @@ async def admin_settings(
         "settings.html",
         roles=roles,
         text_channels=[c for c in channels if c["type"] == 0],
-        category_channels=[c for c in channels if c["type"] == 4],
         verified_role_ids=settings_service.get_verified_role_ids(session),
         nickname_format=settings_service.get_nickname_format(session),
         admin_role_id=settings_service.get_admin_role_id(session),
         notice_channel_id=settings_service.get_notice_channel_id(session),
-        competition_parent_channel_id=settings_service.get_competition_parent_channel_id(session),
         points_per_join=settings_service.get_points_per_join(session),
         github_channel_id=settings_service.get_github_channel_id(session),
         github_webhook_configured=bool(settings.github_webhook_secret),
@@ -232,9 +230,6 @@ async def admin_settings_save(
     )
     settings_service.set_admin_role_id(session, form.get("admin_role_id") or None)
     settings_service.set_notice_channel_id(session, form.get("notice_channel_id") or None)
-    settings_service.set_competition_parent_channel_id(
-        session, form.get("competition_parent_channel_id") or None
-    )
     try:
         points_per_join = int(form.get("points_per_join") or settings_service.DEFAULT_POINTS_PER_JOIN)
     except ValueError:
@@ -363,6 +358,14 @@ def admin_competition_detail(
     )
 
 
+@router.post("/admin/competitions/{competition_id}/delete")
+async def admin_competition_delete(
+    competition_id: int, admin: dict = Depends(require_admin), session: Session = Depends(get_session)
+):
+    await competitions_service.delete_competition(session, competition_id)
+    return RedirectResponse(url="/admin/competitions", status_code=303)
+
+
 @router.get("/admin/competitions/{competition_id}/export.csv")
 def admin_competition_export_csv(
     competition_id: int,
@@ -429,6 +432,7 @@ def admin_points(
         "points.html",
         leaderboard=points_service.list_all_with_totals(session),
         points_per_join=settings_service.get_points_per_join(session),
+        transactions=points_service.list_recent_transactions_all(session),
     )
 
 
@@ -441,6 +445,14 @@ def admin_points_award(
     session: Session = Depends(get_session),
 ):
     points_service.add_points(session, discord_id, points, reason, admin["discord_id"])
+    return RedirectResponse(url="/admin/points", status_code=303)
+
+
+@router.post("/admin/points/delete/{transaction_id}")
+def admin_points_delete(
+    transaction_id: int, admin: dict = Depends(require_admin), session: Session = Depends(get_session)
+):
+    points_service.delete_transaction(session, transaction_id)
     return RedirectResponse(url="/admin/points", status_code=303)
 
 

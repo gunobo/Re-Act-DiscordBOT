@@ -103,6 +103,22 @@ async def revoke_role(guild_id: str, user_id: str, role_id: str) -> None:
             raise RuntimeError(f"역할 해제 실패 (user={user_id}, role={role_id}): {resp.text}")
 
 
+async def delete_role(guild_id: str, role_id: str) -> None:
+    """대회 삭제 등 정리(cleanup) 용도라, 실패해도 예외를 던지지 않고 로그만 남긴다."""
+    if not settings.discord_configured:
+        print(f"[discord_rest:mock] delete_role(role={role_id})")
+        return
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            resp = await client.delete(
+                f"{DISCORD_API}/guilds/{guild_id}/roles/{role_id}", headers=_headers()
+            )
+            if resp.status_code not in (200, 204, 404):
+                print(f"[discord_rest] 역할 삭제 실패 (role={role_id}): {resp.text}")
+    except httpx.HTTPError as exc:
+        print(f"[discord_rest] 역할 삭제 중 네트워크 오류 (role={role_id}): {exc!r}")
+
+
 async def set_nickname(guild_id: str, user_id: str, nickname: str) -> None:
     if not settings.discord_configured:
         print(f"[discord_rest:mock] set_nickname(user={user_id}, nickname={nickname!r})")
@@ -133,6 +149,20 @@ async def create_channel(
         )
         resp.raise_for_status()
         return resp.json()["id"]
+
+
+async def delete_channel(channel_id: str) -> None:
+    """대회 삭제 등 정리(cleanup) 용도라, 실패해도 예외를 던지지 않고 로그만 남긴다."""
+    if not settings.discord_configured:
+        print(f"[discord_rest:mock] delete_channel(channel={channel_id})")
+        return
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            resp = await client.delete(f"{DISCORD_API}/channels/{channel_id}", headers=_headers())
+            if resp.status_code not in (200, 204, 404):
+                print(f"[discord_rest] 채널 삭제 실패 (channel={channel_id}): {resp.text}")
+    except httpx.HTTPError as exc:
+        print(f"[discord_rest] 채널 삭제 중 네트워크 오류 (channel={channel_id}): {exc!r}")
 
 
 async def send_message(
@@ -178,20 +208,24 @@ async def edit_message(
 
 
 async def send_dm(user_id: str, content: str) -> None:
+    """DM은 항상 '베스트 에포트'다 — 유저가 DM을 막아뒀거나 타임아웃이 나도
+    호출부(참가 처리 등)의 핵심 로직을 절대 실패시키면 안 된다."""
     if not settings.discord_configured:
         print(f"[discord_rest:mock] send_dm(user={user_id}, content={content!r})")
         return
-    async with httpx.AsyncClient() as client:
-        dm = await client.post(
-            f"{DISCORD_API}/users/@me/channels", headers=_headers(), json={"recipient_id": user_id}
-        )
-        dm.raise_for_status()
-        dm_channel_id = dm.json()["id"]
-        resp = await client.post(
-            f"{DISCORD_API}/channels/{dm_channel_id}/messages",
-            headers=_headers(),
-            json={"content": content},
-        )
-        # DM이 막혀있는 유저일 수 있으니 실패해도 예외를 던지지 않는다.
-        if resp.status_code not in (200, 201):
-            print(f"[discord_rest] DM 발송 실패 (user={user_id}): {resp.text}")
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            dm = await client.post(
+                f"{DISCORD_API}/users/@me/channels", headers=_headers(), json={"recipient_id": user_id}
+            )
+            dm.raise_for_status()
+            dm_channel_id = dm.json()["id"]
+            resp = await client.post(
+                f"{DISCORD_API}/channels/{dm_channel_id}/messages",
+                headers=_headers(),
+                json={"content": content},
+            )
+            if resp.status_code not in (200, 201):
+                print(f"[discord_rest] DM 발송 실패 (user={user_id}): {resp.text}")
+    except httpx.HTTPError as exc:
+        print(f"[discord_rest] DM 발송 중 네트워크 오류 (user={user_id}): {exc!r}")

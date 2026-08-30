@@ -7,7 +7,7 @@ from app import discord_rest
 from app.categories.models import DEFAULT_TEMPLATE_TEXT, CategoryTemplate
 from app.competitions.models import Competition, CompetitionCategory
 from app.core.config import settings
-from app.settings_kv import service as settings_service
+from app.participation.models import Participation
 
 EMBED_COLOR = 0x5865F2
 
@@ -91,10 +91,15 @@ async def create_competition(
     # 대회 참가자에게 부여할 "대회명" 역할을 미리 만들어둔다.
     role_id = await discord_rest.create_role(settings.discord_guild_id, title)
     competition.discord_role_id = role_id
+
+    # 대회 전용 디스코드 카테고리(채널 묶음)를 만들고, 이 대회의 모든 참가 채널을 그 안에 생성한다.
+    category_channel_id = await discord_rest.create_channel(
+        settings.discord_guild_id, title, parent_id=None, channel_type=4
+    )
+    competition.discord_category_channel_id = category_channel_id
+
     session.add(competition)
     session.commit()
-
-    parent_channel_id = settings_service.get_competition_parent_channel_id(session)
 
     for selection in selections:
         template_text = DEFAULT_TEMPLATE_TEXT
@@ -114,9 +119,8 @@ async def create_competition(
         session.commit()
         session.refresh(comp_category)
 
-        channel_name = f"{title}-{comp_category.name}"
         channel_id = await discord_rest.create_channel(
-            settings.discord_guild_id, channel_name, parent_id=parent_channel_id
+            settings.discord_guild_id, comp_category.name, parent_id=category_channel_id
         )
         comp_category.discord_channel_id = channel_id
 
@@ -129,3 +133,28 @@ async def create_competition(
         session.commit()
 
     return competition
+
+
+async def delete_competition(session: Session, competition_id: int) -> None:
+    """대회와 그 카테고리 채널/역할을 디스코드에서도 함께 정리하고 DB 기록을 삭제한다."""
+    competition = session.get(Competition, competition_id)
+    if not competition:
+        return
+
+    comp_categories = list_categories_for_competition(session, competition_id)
+    for comp_category in comp_categories:
+        if comp_category.discord_channel_id:
+            await discord_rest.delete_channel(comp_category.discord_channel_id)
+        for participation in session.exec(
+            select(Participation).where(Participation.competition_category_id == comp_category.id)
+        ):
+            session.delete(participation)
+        session.delete(comp_category)
+
+    if competition.discord_category_channel_id:
+        await discord_rest.delete_channel(competition.discord_category_channel_id)
+    if competition.discord_role_id:
+        await discord_rest.delete_role(settings.discord_guild_id, competition.discord_role_id)
+
+    session.delete(competition)
+    session.commit()

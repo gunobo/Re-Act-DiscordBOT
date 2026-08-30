@@ -34,4 +34,25 @@
   <tr><td colspan="4" class="muted">인증된 부원이 없습니다.</td></tr>
   {% endfor %}
 </table>
+
+<h2>최근 지급/차감 내역</h2>
+<p class="muted">잘못 지급했거나 취소하고 싶은 내역은 삭제할 수 있습니다 (해당 항목만큼 총점에서 빠집니다).</p>
+<table>
+  <tr><th>일시</th><th>이름</th><th>포인트</th><th>사유</th><th></th></tr>
+  {% for tx in transactions %}
+  <tr>
+    <td class="muted">{{ tx.created_at.strftime("%Y-%m-%d %H:%M") }}</td>
+    <td>{{ tx.name }}</td>
+    <td>{{ tx.points }}</td>
+    <td>{{ tx.reason }}</td>
+    <td>
+      <form method="post" action="/admin/points/delete/{{ tx.id }}" onsubmit="return confirm('이 내역을 삭제하시겠습니까?')">
+        <button type="submit" class="danger">삭제</button>
+      </form>
+    </td>
+  </tr>
+  {% else %}
+  <tr><td colspan="5" class="muted">내역이 없습니다.</td></tr>
+  {% endfor %}
+</table>
 {% endblock %}

@@ -49,13 +49,20 @@ Discord REST 호출(채널 생성, 임베드 전송/수정, 역할 부여, 닉�
 
 ### 2. backend
 
+`.env`부터 채운다 (로컬 개발/Docker 배포 공통):
+
 ```bash
 cd backend
 cp .env.example .env
 # .env 채우기: DISCORD_TOKEN, DISCORD_GUILD_ID, DISCORD_CLIENT_ID/SECRET,
 #              WEB_BASE_URL=https://react.bssm.dev, COOKIE_SECRET, INTERNAL_API_KEY,
 #              SUPER_ADMIN_DISCORD_IDS(최초 관리자 본인 디스코드ID), SMTP_* (학교 이메일 발송용)
+```
 
+**로컬에서 Docker 없이 바로 테스트해볼 때만** 아래처럼 직접 실행한다 (라즈베리파이 배포에는 필요
+없음 — 4번 항목의 `docker compose up`이 이 과정을 대신한다):
+
+```bash
 python -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
 uvicorn app.main:app --reload --port 8000
@@ -103,18 +110,21 @@ docker compose up -d --build
    포함되어 있거나 `/admin/settings`에서 지정한 운영진 역할을 가지고 있으면 관리 페이지 진입.
 2. **운영진**: `/admin/members`에서 학교 이메일 + 학번 + 이름을 화이트리스트에 등록.
 3. **운영진**: `/admin/settings`에서 인증 시 부여할 역할(복수 선택), 닉네임 형식
-   (기본 `{student_id} {name}`), 공지 채널, 대회 채널 생성 위치를 지정.
+   (기본 `{student_id} {name}`), 공지 채널을 지정.
 4. **부원**: 디스코드에서 `/인증 이메일:학교이메일` → 코드 수신 → `/인증확인 코드:######` →
    설정된 역할 부여 + 닉네임이 학번/이름으로 자동 변경.
 5. **운영진**: `/admin/categories`에서 카테고리(예: 웹개발/앱개발/게임개발)와 안내 템플릿 등록.
 6. **운영진**: `/admin/competitions/new`에서 대회 등록 시 카테고리 선택 + 카테고리별 선착순 정원
-   입력 → 카테고리마다 디스코드 채널이 자동 생성되고 "참가하기" 버튼이 달린 안내가 게시됨.
+   입력 → **대회명으로 된 디스코드 카테고리가 자동 생성**되고, 그 안에 카테고리별 채널과
+   "참가하기" 버튼이 달린 안내가 게시됨. 대회 상세 페이지에서 언제든 삭제 가능 (디스코드
+   카테고리/채널/역할도 함께 정리됨).
 7. **부원**: 버튼 클릭 → 인증 여부/정원 확인 → 성공 시 대회명과 같은 이름의 역할이 자동 부여되고
    개인 DM으로 참가 완료 + 적립 포인트 안내, 임베드의 참가 인원 수 갱신 (정원 도달 시 버튼 비활성화).
 8. **운영진**: `/admin/notices`에서 공지 작성 후 "게시"하면 설정된 채널에 자동 전송, `/notices`
    공개 페이지에서도 확인 가능.
 9. **부원**: `/포인트`(본인 포인트 확인), `/랭킹`(상위 10명)으로 활동 포인트 확인. 참가 시
-   자동 지급되는 포인트 양은 `/admin/settings`에서 조절, 출석 등 수동 지급/차감은 `/admin/points`.
+   자동 지급되는 포인트 양은 `/admin/settings`에서 조절, 출석 등 수동 지급/차감 및 잘못된
+   내역 삭제는 `/admin/points`.
 10. **운영진**: `/admin/attributes`에서 부원별 추가 정보 항목(연락처, 전공 등)을 자유롭게
     정의하고 `/admin/members`의 각 부원 "속성" 링크에서 값을 입력. 디스코드에는 반영되지 않으며,
     대회 참가자 CSV를 내보낼 때 어떤 속성을 포함할지 체크박스로 선택할 수 있다.

@@ -51,3 +51,30 @@ def list_recent_transactions(session: Session, discord_id: str, limit: int = 20)
             .limit(limit)
         )
     )
+
+
+def list_recent_transactions_all(session: Session, limit: int = 50) -> list[dict]:
+    rows = session.exec(
+        select(PointTransaction, Member)
+        .join(Member, Member.discord_id == PointTransaction.discord_id, isouter=True)
+        .order_by(PointTransaction.created_at.desc())
+        .limit(limit)
+    ).all()
+    return [
+        {
+            "id": tx.id,
+            "discord_id": tx.discord_id,
+            "name": member.name if member else tx.discord_id,
+            "points": tx.points,
+            "reason": tx.reason,
+            "created_at": tx.created_at,
+        }
+        for tx, member in rows
+    ]
+
+
+def delete_transaction(session: Session, transaction_id: int) -> None:
+    row = session.get(PointTransaction, transaction_id)
+    if row:
+        session.delete(row)
+        session.commit()

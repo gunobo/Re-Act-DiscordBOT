@@ -5,6 +5,7 @@
 {% if not discord_configured %}
 <p class="muted">DISCORD_TOKEN/DISCORD_GUILD_ID 미설정 상태(MOCK)라 역할/채널 목록이 실제와 다를 수 있습니다.</p>
 {% endif %}
+<p class="muted">대회를 등록하면 대회명으로 된 디스코드 카테고리가 자동 생성되고, 그 안에 카테고리별 참가 채널이 만들어집니다 (별도 설정 불필요).</p>
 <form method="post" action="/admin/settings">
   <div class="card">
     <h2 style="margin-top:0">인증 완료 시 부여할 역할</h2>
@@ -41,17 +42,6 @@
       <option value="">(선택 안 함)</option>
       {% for c in text_channels %}
         <option value="{{ c.id }}" {% if c.id == notice_channel_id %}selected{% endif %}>#{{ c.name }}</option>
-      {% endfor %}
-    </select>
-  </div>
-
-  <div class="card">
-    <h2 style="margin-top:0">대회 채널 생성 위치</h2>
-    <p class="muted">대회 등록 시 카테고리별 채널이 이 상위 카테고리 아래에 생성됩니다.</p>
-    <select name="competition_parent_channel_id">
-      <option value="">(서버 최상위)</option>
-      {% for c in category_channels %}
-        <option value="{{ c.id }}" {% if c.id == competition_parent_channel_id %}selected{% endif %}>{{ c.name }}</option>
       {% endfor %}
     </select>
   </div>

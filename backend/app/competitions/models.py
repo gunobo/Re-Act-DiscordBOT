@@ -10,6 +10,7 @@ class Competition(SQLModel, table=True):
     deadline: datetime
     created_by: str
     discord_role_id: str | None = None
+    discord_category_channel_id: str | None = None
     created_at: datetime = Field(default_factory=datetime.utcnow)
 
 
