@@ -6,7 +6,13 @@
   <div class="card">
     <label>제목</label>
     <input type="text" name="title" value="{{ notice.title if notice else '' }}" required />
-    <label>내용</label>
+    <label>
+      내용
+      <span class="muted">
+        (마크다운 지원: **굵게**, *기울임*, - 목록, [링크](url), &gt; 인용, `코드` 등.
+        디스코드와 웹사이트 양쪽에 반영됩니다.)
+      </span>
+    </label>
     <textarea name="content" rows="10" required>{{ notice.content if notice else '' }}</textarea>
   </div>
   <button type="submit">저장</button>

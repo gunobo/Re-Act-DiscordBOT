@@ -1,11 +1,20 @@
 from datetime import datetime
 
+import markdown as markdown_lib
 from sqlmodel import Session, select
 
 from app import discord_rest
 from app.notices.models import Notice
 
 EMBED_COLOR = 0x57F287
+
+
+def render_markdown(content: str) -> str:
+    """공지 내용을 HTML로 렌더링한다 (웹사이트 표시용).
+
+    디스코드 임베드는 원문(마크다운 그대로)을 그대로 보내면 알아서 렌더링해주므로
+    publish_notice에서는 이 함수를 쓰지 않는다."""
+    return markdown_lib.markdown(content, extensions=["nl2br", "fenced_code"])
 
 
 def list_notices(session: Session, published_only: bool = False) -> list[Notice]:

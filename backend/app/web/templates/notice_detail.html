@@ -4,5 +4,5 @@
 <a href="/notices" class="muted">&larr; 목록으로</a>
 <h1>{{ notice.title }}</h1>
 <p class="muted">{{ notice.published_at.strftime("%Y-%m-%d %H:%M") if notice.published_at else "" }}</p>
-<div class="card" style="white-space: pre-wrap">{{ notice.content }}</div>
+<div class="card markdown-body">{{ content_html|safe }}</div>
 {% endblock %}

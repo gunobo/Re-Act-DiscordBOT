@@ -53,7 +53,8 @@ def public_notice_detail(notice_id: int, request: Request, session: Session = De
     notice = notices_service.get_notice(session, notice_id)
     if not notice or not notice.published:
         raise HTTPException(status_code=404)
-    return render(request, "notice_detail.html", notice=notice)
+    content_html = notices_service.render_markdown(notice.content)
+    return render(request, "notice_detail.html", notice=notice, content_html=content_html)
 
 
 # ---------- 관리자 대시보드 ----------
