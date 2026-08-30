@@ -8,7 +8,7 @@ services:
     volumes:
       - backend_data:/app/data
     ports:
-      - "8000:8000"
+      - "8009:8000"
     restart: unless-stopped
 
   # react.bssm.dev 공인 도메인을 라즈베리파이의 backend(8000)로 연결하는 터널.
