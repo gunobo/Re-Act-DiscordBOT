@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block title %}카테고리 템플릿 - RE-ACT{% endblock %}
+{% block content %}
+<h1>카테고리 템플릿 관리</h1>
+<p class="muted">
+  대회를 만들 때 선택할 수 있는 카테고리 목록입니다. 템플릿 문구에는
+  <code>{title} {description} {category_name} {deadline} {capacity}</code> 변수를 쓸 수 있습니다.
+</p>
+
+<div class="card">
+  <h2 style="margin-top:0">새 카테고리 추가</h2>
+  <form method="post" action="/admin/categories/add">
+    <label>카테고리 이름</label>
+    <input type="text" name="name" required placeholder="예: 웹개발" />
+    <label>템플릿 문구</label>
+    <textarea name="template_text" rows="6">{{ default_template }}</textarea>
+    <div style="margin-top:14px"><button type="submit">추가</button></div>
+  </form>
+</div>
+
+{% for c in categories %}
+<div class="card">
+  <form method="post" action="/admin/categories/update/{{ c.id }}">
+    <label>카테고리 이름</label>
+    <input type="text" name="name" value="{{ c.name }}" required />
+    <label>템플릿 문구</label>
+    <textarea name="template_text" rows="6">{{ c.template_text }}</textarea>
+    <div style="margin-top:14px; display:flex; gap:8px">
+      <button type="submit">저장</button>
+    </div>
+  </form>
+  <form method="post" action="/admin/categories/delete/{{ c.id }}" onsubmit="return confirm('삭제하시겠습니까?')" style="margin-top:8px">
+    <button type="submit" class="danger">카테고리 삭제</button>
+  </form>
+</div>
+{% else %}
+<p class="muted">등록된 카테고리가 없습니다.</p>
+{% endfor %}
+{% endblock %}

@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block title %}관리 대시보드 - RE-ACT{% endblock %}
+{% block content %}
+<h1>관리 대시보드</h1>
+<p class="muted">{{ admin.username }}님, 환영합니다.</p>
+<div class="grid-2">
+  <div class="card">
+    <h2 style="margin-top:0">부원</h2>
+    <p>화이트리스트 {{ allowed_count }}명 / 인증 완료 {{ member_count }}명</p>
+    <a class="btn" href="/admin/members">부원 관리</a>
+  </div>
+  <div class="card">
+    <h2 style="margin-top:0">대회</h2>
+    <p>등록된 대회 {{ competition_count }}건</p>
+    <a class="btn" href="/admin/competitions">대회 관리</a>
+  </div>
+  <div class="card">
+    <h2 style="margin-top:0">카테고리 템플릿</h2>
+    <p>{{ category_count }}개 등록됨</p>
+    <a class="btn" href="/admin/categories">카테고리 관리</a>
+  </div>
+  <div class="card">
+    <h2 style="margin-top:0">공지</h2>
+    <p>{{ notice_count }}건 (게시됨 {{ published_notice_count }}건)</p>
+    <a class="btn" href="/admin/notices">공지 관리</a>
+  </div>
+</div>
+<div class="card">
+  <h2 style="margin-top:0">설정</h2>
+  <p class="muted">인증 시 부여할 역할, 닉네임 형식, 운영진 역할, 공지/대회 채널을 설정합니다.</p>
+  <a class="btn secondary" href="/admin/settings">설정 바로가기</a>
+</div>
+{% if not discord_configured %}
+<div class="card">
+  <p class="badge">MOCK 모드</p>
+  <p class="muted">DISCORD_TOKEN / DISCORD_GUILD_ID가 설정되지 않아 실제 디스코드 호출 대신 콘솔 로그만 남깁니다.</p>
+</div>
+{% endif %}
+{% endblock %}

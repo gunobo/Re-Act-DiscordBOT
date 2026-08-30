@@ -1,0 +1,184 @@
+"""봇 토큰으로 Discord REST API를 직접 호출하는 모듈.
+
+DISCORD_TOKEN이 설정되지 않은 개발 환경에서는 실제 호출 대신 콘솔에 로그만 남기고
+그럴싸한 더미 값을 반환하는 목(mock) 모드로 동작해서, 실제 디스코드 서버 없이도
+나머지 기능을 개발/테스트할 수 있게 한다.
+"""
+
+import itertools
+
+import httpx
+
+from app.core.config import settings
+
+DISCORD_API = "https://discord.com/api/v10"
+
+_mock_id_counter = itertools.count(1)
+
+
+def _mock_id() -> str:
+    return f"mock-{next(_mock_id_counter)}"
+
+
+def _headers() -> dict:
+    return {
+        "Authorization": f"Bot {settings.discord_token}",
+        "Content-Type": "application/json",
+    }
+
+
+async def list_roles(guild_id: str) -> list[dict]:
+    if not settings.discord_configured:
+        print(f"[discord_rest:mock] list_roles(guild_id={guild_id})")
+        return [{"id": "mock-role-1", "name": "부원(mock)"}]
+    async with httpx.AsyncClient() as client:
+        resp = await client.get(f"{DISCORD_API}/guilds/{guild_id}/roles", headers=_headers())
+        resp.raise_for_status()
+        return [{"id": r["id"], "name": r["name"]} for r in resp.json()]
+
+
+async def list_channels(guild_id: str) -> list[dict]:
+    if not settings.discord_configured:
+        print(f"[discord_rest:mock] list_channels(guild_id={guild_id})")
+        return [{"id": "mock-channel-1", "name": "공지(mock)", "type": 0, "parent_id": None}]
+    async with httpx.AsyncClient() as client:
+        resp = await client.get(f"{DISCORD_API}/guilds/{guild_id}/channels", headers=_headers())
+        resp.raise_for_status()
+        return [
+            {"id": c["id"], "name": c["name"], "type": c["type"], "parent_id": c.get("parent_id")}
+            for c in resp.json()
+        ]
+
+
+async def get_member_role_ids(guild_id: str, user_id: str) -> list[str]:
+    if not settings.discord_configured:
+        print(f"[discord_rest:mock] get_member_role_ids(guild_id={guild_id}, user_id={user_id})")
+        return []
+    async with httpx.AsyncClient() as client:
+        resp = await client.get(
+            f"{DISCORD_API}/guilds/{guild_id}/members/{user_id}", headers=_headers()
+        )
+        if resp.status_code == 404:
+            return []
+        resp.raise_for_status()
+        return resp.json().get("roles", [])
+
+
+async def grant_role(guild_id: str, user_id: str, role_id: str) -> None:
+    if not settings.discord_configured:
+        print(f"[discord_rest:mock] grant_role(user={user_id}, role={role_id})")
+        return
+    async with httpx.AsyncClient() as client:
+        resp = await client.put(
+            f"{DISCORD_API}/guilds/{guild_id}/members/{user_id}/roles/{role_id}",
+            headers=_headers(),
+        )
+        if resp.status_code not in (200, 201, 204):
+            raise RuntimeError(f"역할 부여 실패 (user={user_id}, role={role_id}): {resp.text}")
+
+
+async def revoke_role(guild_id: str, user_id: str, role_id: str) -> None:
+    if not settings.discord_configured:
+        print(f"[discord_rest:mock] revoke_role(user={user_id}, role={role_id})")
+        return
+    async with httpx.AsyncClient() as client:
+        resp = await client.delete(
+            f"{DISCORD_API}/guilds/{guild_id}/members/{user_id}/roles/{role_id}",
+            headers=_headers(),
+        )
+        if resp.status_code not in (200, 204, 404):
+            raise RuntimeError(f"역할 해제 실패 (user={user_id}, role={role_id}): {resp.text}")
+
+
+async def set_nickname(guild_id: str, user_id: str, nickname: str) -> None:
+    if not settings.discord_configured:
+        print(f"[discord_rest:mock] set_nickname(user={user_id}, nickname={nickname!r})")
+        return
+    async with httpx.AsyncClient() as client:
+        resp = await client.patch(
+            f"{DISCORD_API}/guilds/{guild_id}/members/{user_id}",
+            headers=_headers(),
+            json={"nick": nickname[:32]},
+        )
+        if resp.status_code not in (200, 204):
+            raise RuntimeError(f"닉네임 변경 실패 (user={user_id}): {resp.text}")
+
+
+async def create_channel(
+    guild_id: str, name: str, parent_id: str | None = None, channel_type: int = 0
+) -> str:
+    if not settings.discord_configured:
+        cid = _mock_id()
+        print(f"[discord_rest:mock] create_channel(name={name!r}) -> {cid}")
+        return cid
+    payload: dict = {"name": name[:100], "type": channel_type}
+    if parent_id:
+        payload["parent_id"] = parent_id
+    async with httpx.AsyncClient() as client:
+        resp = await client.post(
+            f"{DISCORD_API}/guilds/{guild_id}/channels", headers=_headers(), json=payload
+        )
+        resp.raise_for_status()
+        return resp.json()["id"]
+
+
+async def send_message(
+    channel_id: str, embed: dict | None = None, components: list | None = None, content: str | None = None
+) -> str:
+    if not settings.discord_configured:
+        mid = _mock_id()
+        print(f"[discord_rest:mock] send_message(channel={channel_id}) -> {mid}")
+        return mid
+    payload: dict = {}
+    if content:
+        payload["content"] = content
+    if embed:
+        payload["embeds"] = [embed]
+    if components:
+        payload["components"] = components
+    async with httpx.AsyncClient() as client:
+        resp = await client.post(
+            f"{DISCORD_API}/channels/{channel_id}/messages", headers=_headers(), json=payload
+        )
+        resp.raise_for_status()
+        return resp.json()["id"]
+
+
+async def edit_message(
+    channel_id: str, message_id: str, embed: dict | None = None, components: list | None = None
+) -> None:
+    if not settings.discord_configured:
+        print(f"[discord_rest:mock] edit_message(channel={channel_id}, message={message_id})")
+        return
+    payload: dict = {}
+    if embed is not None:
+        payload["embeds"] = [embed]
+    if components is not None:
+        payload["components"] = components
+    async with httpx.AsyncClient() as client:
+        resp = await client.patch(
+            f"{DISCORD_API}/channels/{channel_id}/messages/{message_id}",
+            headers=_headers(),
+            json=payload,
+        )
+        resp.raise_for_status()
+
+
+async def send_dm(user_id: str, content: str) -> None:
+    if not settings.discord_configured:
+        print(f"[discord_rest:mock] send_dm(user={user_id}, content={content!r})")
+        return
+    async with httpx.AsyncClient() as client:
+        dm = await client.post(
+            f"{DISCORD_API}/users/@me/channels", headers=_headers(), json={"recipient_id": user_id}
+        )
+        dm.raise_for_status()
+        dm_channel_id = dm.json()["id"]
+        resp = await client.post(
+            f"{DISCORD_API}/channels/{dm_channel_id}/messages",
+            headers=_headers(),
+            json={"content": content},
+        )
+        # DM이 막혀있는 유저일 수 있으니 실패해도 예외를 던지지 않는다.
+        if resp.status_code not in (200, 201):
+            print(f"[discord_rest] DM 발송 실패 (user={user_id}): {resp.text}")

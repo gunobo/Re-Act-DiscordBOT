@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% block title %}설정 - RE-ACT{% endblock %}
+{% block content %}
+<h1>설정</h1>
+{% if not discord_configured %}
+<p class="muted">DISCORD_TOKEN/DISCORD_GUILD_ID 미설정 상태(MOCK)라 역할/채널 목록이 실제와 다를 수 있습니다.</p>
+{% endif %}
+<form method="post" action="/admin/settings">
+  <div class="card">
+    <h2 style="margin-top:0">인증 완료 시 부여할 역할</h2>
+    <p class="muted">부원 인증(코드 확인)이 끝나면 아래 체크한 역할을 전부 부여합니다.</p>
+    {% for r in roles %}
+      <label style="display:flex; align-items:center; gap:8px; color: var(--text)">
+        <input type="checkbox" name="verified_role_ids" value="{{ r.id }}"
+          {% if r.id in verified_role_ids %}checked{% endif %} style="width:auto" />
+        {{ r.name }}
+      </label>
+    {% endfor %}
+  </div>
+
+  <div class="card">
+    <h2 style="margin-top:0">닉네임 형식</h2>
+    <p class="muted">인증 완료 시 자동으로 적용할 닉네임 형식. 변수: <code>{student_id} {name} {email}</code></p>
+    <input type="text" name="nickname_format" value="{{ nickname_format }}" />
+  </div>
+
+  <div class="card">
+    <h2 style="margin-top:0">운영진(관리자) 역할</h2>
+    <p class="muted">이 역할을 가진 사람은 디스코드 로그인만으로 관리 페이지에 접근할 수 있습니다.</p>
+    <select name="admin_role_id">
+      <option value="">(사용 안 함)</option>
+      {% for r in roles %}
+        <option value="{{ r.id }}" {% if r.id == admin_role_id %}selected{% endif %}>{{ r.name }}</option>
+      {% endfor %}
+    </select>
+  </div>
+
+  <div class="card">
+    <h2 style="margin-top:0">공지 게시 채널</h2>
+    <select name="notice_channel_id">
+      <option value="">(선택 안 함)</option>
+      {% for c in text_channels %}
+        <option value="{{ c.id }}" {% if c.id == notice_channel_id %}selected{% endif %}>#{{ c.name }}</option>
+      {% endfor %}
+    </select>
+  </div>
+
+  <div class="card">
+    <h2 style="margin-top:0">대회 채널 생성 위치</h2>
+    <p class="muted">대회 등록 시 카테고리별 채널이 이 상위 카테고리 아래에 생성됩니다.</p>
+    <select name="competition_parent_channel_id">
+      <option value="">(서버 최상위)</option>
+      {% for c in category_channels %}
+        <option value="{{ c.id }}" {% if c.id == competition_parent_channel_id %}selected{% endif %}>{{ c.name }}</option>
+      {% endfor %}
+    </select>
+  </div>
+
+  <button type="submit">저장</button>
+</form>
+{% endblock %}

@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% block title %}새 대회 등록 - RE-ACT{% endblock %}
+{% block content %}
+<h1>새 대회 등록</h1>
+<p class="muted">
+  아래에서 선택한 카테고리마다 디스코드 채널이 자동 생성되고, 참가 버튼이 달린 안내 메시지가 올라갑니다.
+</p>
+<form method="post" action="/admin/competitions/new">
+  <div class="card">
+    <label>대회 제목</label>
+    <input type="text" name="title" required />
+    <label>설명</label>
+    <textarea name="description" rows="4" required></textarea>
+    <label>마감 일시</label>
+    <input type="datetime-local" name="deadline" required />
+  </div>
+
+  <div class="card">
+    <h2 style="margin-top:0">카테고리 선택 및 정원</h2>
+    {% for c in categories %}
+      <div class="category-row">
+        <input type="checkbox" name="cat_{{ c.id }}_selected" value="1" style="width:auto" />
+        <label>{{ c.name }}</label>
+        <input type="number" name="cat_{{ c.id }}_capacity" min="1" value="20" />
+        <span class="muted">명</span>
+      </div>
+    {% else %}
+      <p class="muted">먼저 <a href="/admin/categories">카테고리 템플릿</a>을 등록해주세요.</p>
+    {% endfor %}
+  </div>
+
+  <button type="submit">등록 (디스코드에 자동 게시)</button>
+</form>
+{% endblock %}

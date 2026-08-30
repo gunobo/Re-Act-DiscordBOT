@@ -1,0 +1,22 @@
+# python
+backend/.venv/
+backend/__pycache__/
+backend/**/__pycache__/
+backend/*.db
+backend/data/
+*.pyc
+
+# node
+discord-bot/node_modules/
+discord-bot/npm-debug.log*
+
+# env / secrets
+.env
+backend/.env
+discord-bot/.env
+
+# os
+.DS_Store
+
+# pm2
+discord-bot/logs/

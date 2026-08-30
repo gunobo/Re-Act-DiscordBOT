@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block title %}대회 관리 - RE-ACT{% endblock %}
+{% block content %}
+<h1>대회 관리</h1>
+<a class="btn" href="/admin/competitions/new">새 대회 등록</a>
+<table>
+  <tr><th>제목</th><th>마감</th><th>등록일</th><th></th></tr>
+  {% for c in competitions %}
+  <tr>
+    <td>{{ c.title }}</td>
+    <td class="muted">{{ c.deadline.strftime("%Y-%m-%d %H:%M") }}</td>
+    <td class="muted">{{ c.created_at.strftime("%Y-%m-%d") }}</td>
+    <td><a class="btn secondary" href="/admin/competitions/{{ c.id }}">상세</a></td>
+  </tr>
+  {% else %}
+  <tr><td colspan="4" class="muted">등록된 대회가 없습니다.</td></tr>
+  {% endfor %}
+</table>
+{% endblock %}

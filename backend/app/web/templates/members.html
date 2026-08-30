@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% block title %}부원 관리 - RE-ACT{% endblock %}
+{% block content %}
+<h1>부원 관리</h1>
+
+<div class="card">
+  <h2 style="margin-top:0">화이트리스트에 이메일 추가</h2>
+  <p class="muted">여기 등록된 학교 이메일만 디스코드 <code>/인증</code>으로 부원 인증을 진행할 수 있습니다.</p>
+  <form method="post" action="/admin/members/add">
+    <label>학교 이메일</label>
+    <input type="email" name="email" required />
+    <label>학번</label>
+    <input type="text" name="student_id" required />
+    <label>이름</label>
+    <input type="text" name="name" required />
+    <div style="margin-top:14px"><button type="submit">추가</button></div>
+  </form>
+</div>
+
+<h2>화이트리스트 ({{ allowed_members|length }}명)</h2>
+<table>
+  <tr><th>이메일</th><th>학번</th><th>이름</th><th>등록일</th><th>인증여부</th><th></th></tr>
+  {% for a in allowed_members %}
+  <tr>
+    <td>{{ a.email }}</td>
+    <td>{{ a.student_id }}</td>
+    <td>{{ a.name }}</td>
+    <td class="muted">{{ a.created_at.strftime("%Y-%m-%d") }}</td>
+    <td>
+      {% if a.email in verified_emails %}
+        <span class="badge ok">인증됨</span>
+      {% else %}
+        <span class="badge">미인증</span>
+      {% endif %}
+    </td>
+    <td>
+      <form class="inline" method="post" action="/admin/members/delete" onsubmit="return confirm('삭제하시겠습니까?')">
+        <input type="hidden" name="email" value="{{ a.email }}" />
+        <button type="submit" class="danger">삭제</button>
+      </form>
+    </td>
+  </tr>
+  {% endfor %}
+</table>
+
+<h2>인증 완료된 부원 ({{ members|length }}명)</h2>
+<table>
+  <tr><th>이름</th><th>학번</th><th>이메일</th><th>디스코드 ID</th><th>인증일</th><th></th></tr>
+  {% for m in members %}
+  <tr>
+    <td>{{ m.name }}</td>
+    <td>{{ m.student_id }}</td>
+    <td>{{ m.email }}</td>
+    <td class="muted">{{ m.discord_id }}</td>
+    <td class="muted">{{ m.verified_at.strftime("%Y-%m-%d") }}</td>
+    <td>
+      <form class="inline" method="post" action="/admin/members/unverify" onsubmit="return confirm('인증을 해제하시겠습니까? (역할이 회수됩니다)')">
+        <input type="hidden" name="discord_id" value="{{ m.discord_id }}" />
+        <button type="submit" class="danger">인증해제</button>
+      </form>
+    </td>
+  </tr>
+  {% endfor %}
+</table>
+{% endblock %}

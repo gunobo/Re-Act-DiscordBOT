@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>{% block title %}RE-ACT 리액트봇{% endblock %}</title>
+  <link rel="stylesheet" href="/static/css/style.css" />
+</head>
+<body>
+  <header>
+    <a href="/">🤖 RE-ACT 리액트봇</a>
+    <nav>
+      <a href="/notices">공지</a>
+      {% if admin %}
+        <a href="/admin">관리</a>
+        <a href="/admin/members">부원</a>
+        <a href="/admin/competitions">대회</a>
+        <a href="/admin/categories">카테고리</a>
+        <a href="/admin/notices">공지 관리</a>
+        <a href="/admin/settings">설정</a>
+        <a href="/auth/logout">로그아웃({{ admin.username }})</a>
+      {% else %}
+        <a href="/auth/login">운영진 로그인</a>
+      {% endif %}
+    </nav>
+  </header>
+  <main>
+    {% block content %}{% endblock %}
+  </main>
+</body>
+</html>

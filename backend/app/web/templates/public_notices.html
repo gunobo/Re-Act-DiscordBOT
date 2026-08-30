@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block title %}공지 - RE-ACT{% endblock %}
+{% block content %}
+<h1>공지사항</h1>
+{% if notices %}
+  {% for n in notices %}
+    <div class="card">
+      <h2 style="margin-top:0"><a href="/notices/{{ n.id }}" style="color:inherit">{{ n.title }}</a></h2>
+      <p class="muted">{{ n.published_at.strftime("%Y-%m-%d %H:%M") if n.published_at else "" }}</p>
+    </div>
+  {% endfor %}
+{% else %}
+  <p class="muted">등록된 공지가 없습니다.</p>
+{% endif %}
+{% endblock %}

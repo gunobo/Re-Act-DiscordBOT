@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block title %}공지 작성 - RE-ACT{% endblock %}
+{% block content %}
+<h1>{% if notice %}공지 수정{% else %}새 공지 작성{% endif %}</h1>
+<form method="post" action="{% if notice %}/admin/notices/{{ notice.id }}/edit{% else %}/admin/notices/new{% endif %}">
+  <div class="card">
+    <label>제목</label>
+    <input type="text" name="title" value="{{ notice.title if notice else '' }}" required />
+    <label>내용</label>
+    <textarea name="content" rows="10" required>{{ notice.content if notice else '' }}</textarea>
+  </div>
+  <button type="submit">저장</button>
+</form>
+{% if notice and not notice.published %}
+<form method="post" action="/admin/notices/{{ notice.id }}/publish" onsubmit="return confirm('디스코드에 게시하시겠습니까?')" style="margin-top:8px">
+  <button type="submit" class="secondary">저장 후 디스코드에 게시</button>
+</form>
+{% endif %}
+{% endblock %}

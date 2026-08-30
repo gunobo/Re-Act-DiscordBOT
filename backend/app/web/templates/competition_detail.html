@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block title %}{{ competition.title }} - RE-ACT{% endblock %}
+{% block content %}
+<a href="/admin/competitions" class="muted">&larr; 목록으로</a>
+<h1>{{ competition.title }}</h1>
+<p class="muted">마감: {{ competition.deadline.strftime("%Y-%m-%d %H:%M") }}</p>
+<div class="card" style="white-space:pre-wrap">{{ competition.description }}</div>
+
+<h2>카테고리별 참가 현황</h2>
+<table>
+  <tr><th>카테고리</th><th>참가 인원</th><th>디스코드 채널</th></tr>
+  {% for cc, count in category_counts %}
+  <tr>
+    <td>{{ cc.name }}</td>
+    <td>{{ count }} / {{ cc.capacity }}</td>
+    <td class="muted">{{ cc.discord_channel_id }}</td>
+  </tr>
+  {% endfor %}
+</table>
+{% endblock %}
