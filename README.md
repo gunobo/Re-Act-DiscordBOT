@@ -2,7 +2,7 @@
 
 동아리 RE-ACT 전용 디스코드 앱. 학교 이메일로 부원 인증하고, 대회를 등록하면 디스코드에
 카테고리별 채널과 "참가하기" 버튼이 자동으로 생성된다. 부원 화이트리스트, 공지, 대회, 각종
-설정은 관리용 웹(`react.bssm.dev`)에서 운영진이 관리한다.
+설정은 관리용 웹(`react-bot.bssm.dev`)에서 운영진이 관리한다.
 
 - `discord-bot/` — Node.js(discord.js) 슬래시 커맨드(`/인증`, `/인증확인`, `/포인트`, `/랭킹`) + 참가 버튼 처리
 - `backend/` — Python(FastAPI + SQLModel). 기능별 디렉토리(`app/<feature>/{models.py,router.py,service.py}`)
@@ -16,7 +16,7 @@ Discord REST 호출(채널 생성, 임베드 전송/수정, 역할 부여, 닉�
 
 - **backend**: 라즈베리파이에서 Docker Compose로 실행 (`docker-compose.yml`).
 - **discord-bot**: 컨테이너화하지 않고 **PM2**로 직접 실행 (`pm2 start ecosystem.config.js`).
-- 공인 도메인은 `https://react.bssm.dev`. 라즈베리파이가 포트포워딩 없이 학교/집 네트워크
+- 공인 도메인은 `https://react-bot.bssm.dev`. 라즈베리파이가 포트포워딩 없이 학교/집 네트워크
   안에 있는 경우가 보통이므로, `docker-compose.yml`에 포함된 **Cloudflare Tunnel**
   (`cloudflared` 서비스)로 backend(8000)를 그 도메인에 연결한다. Discord OAuth 콜백이
   동작하려면 `WEB_BASE_URL`이 실제로 외부에서 접속 가능한 HTTPS 주소여야 하므로 필수 단계다.
@@ -28,12 +28,12 @@ Discord REST 호출(채널 생성, 임베드 전송/수정, 역할 부여, 닉�
 2. 생성 화면에 나오는 `cloudflared tunnel run --token <...>`의 `--token` 뒤 문자열을 복사해
    루트 `.env`의 `CLOUDFLARE_TUNNEL_TOKEN`에 채운다 (`cp .env.example .env` 후 편집)
 3. 같은 화면(또는 터널 상세 → **Public Hostname**)에서 Public Hostname 추가:
-   - Subdomain/Domain: `react.bssm.dev` (bssm.dev가 이미 Cloudflare에 연결되어 있어야 함)
+   - Subdomain/Domain: `react-bot.bssm.dev` (bssm.dev가 이미 Cloudflare에 연결되어 있어야 함)
    - Service: `HTTP` / URL: `backend:8000` (compose 서비스명 — cloudflared 컨테이너가 같은
      도커 네트워크에 있어서 서비스명으로 접근 가능)
-4. `backend/.env`의 `WEB_BASE_URL=https://react.bssm.dev` 확인
+4. `backend/.env`의 `WEB_BASE_URL=https://react-bot.bssm.dev` 확인
 5. `docker compose up -d --build` (cloudflared도 기본으로 함께 뜬다)
-6. Discord 개발자 포털의 OAuth2 Redirect에 `https://react.bssm.dev/auth/discord/callback`을
+6. Discord 개발자 포털의 OAuth2 Redirect에 `https://react-bot.bssm.dev/auth/discord/callback`을
    등록 (`WEB_BASE_URL` + `/auth/discord/callback`과 정확히 일치해야 함)
 
 ## 처음 설정하기
@@ -43,7 +43,7 @@ Discord REST 호출(채널 생성, 임베드 전송/수정, 역할 부여, 닉�
 1. https://discord.com/developers/applications 에서 애플리케이션 생성
 2. **Bot** 탭에서 토큰 발급 (`DISCORD_TOKEN`), `Manage Roles`/`Manage Channels`/`Manage Nicknames` 권한으로 서버에 초대
 3. **OAuth2** 탭에서 `DISCORD_CLIENT_ID` / `DISCORD_CLIENT_SECRET` 확인, Redirect에
-   `https://react.bssm.dev/auth/discord/callback` 등록
+   `https://react-bot.bssm.dev/auth/discord/callback` 등록
 4. 봇 역할이 서버 역할 목록에서 `/설정`으로 부여할 역할들보다 **위에** 있어야 역할 부여/닉네임
    변경이 성공한다 (아래에 있으면 403 에러).
 
@@ -55,7 +55,7 @@ Discord REST 호출(채널 생성, 임베드 전송/수정, 역할 부여, 닉�
 cd backend
 cp .env.example .env
 # .env 채우기: DISCORD_TOKEN, DISCORD_GUILD_ID, DISCORD_CLIENT_ID/SECRET,
-#              WEB_BASE_URL=https://react.bssm.dev, COOKIE_SECRET, INTERNAL_API_KEY,
+#              WEB_BASE_URL=https://react-bot.bssm.dev, COOKIE_SECRET, INTERNAL_API_KEY,
 #              SUPER_ADMIN_DISCORD_IDS(최초 관리자 본인 디스코드ID), SMTP_* (학교 이메일 발송용)
 ```
 
@@ -106,7 +106,7 @@ docker compose up -d --build
 
 ## 사용 흐름
 
-1. **운영진**: `https://react.bssm.dev/auth/login` 로 Discord 로그인 → `SUPER_ADMIN_DISCORD_IDS`에
+1. **운영진**: `https://react-bot.bssm.dev/auth/login` 로 Discord 로그인 → `SUPER_ADMIN_DISCORD_IDS`에
    포함되어 있거나 `/admin/settings`에서 지정한 운영진 역할을 가지고 있으면 관리 페이지 진입.
 2. **운영진**: `/admin/members`에서 학교 이메일 + 학번 + 이름을 화이트리스트에 등록.
 3. **운영진**: `/admin/settings`에서 인증 시 부여할 역할(복수 선택), 닉네임 형식
@@ -135,5 +135,5 @@ docker compose up -d --build
     대회 참가자 CSV를 내보낼 때 어떤 속성을 포함할지 체크박스로 선택할 수 있다.
 11. **운영진**: 대회 상세 페이지(`/admin/competitions/{id}`)에서 참가자 명단을 CSV로 다운로드.
 12. **GitHub 연동**: 저장소 Settings → Webhooks에서 Payload URL을
-    `https://react.bssm.dev/webhooks/github`, Secret을 `GITHUB_WEBHOOK_SECRET`과 동일하게,
+    `https://react-bot.bssm.dev/webhooks/github`, Secret을 `GITHUB_WEBHOOK_SECRET`과 동일하게,
     이벤트로 Pull requests/Issues를 등록하면 `/admin/settings`에서 지정한 채널에 PR/이슈 알림이 온다.

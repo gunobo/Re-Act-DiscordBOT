@@ -11,7 +11,7 @@ services:
       - "8009:8000"
     restart: unless-stopped
 
-  # react.bssm.dev 공인 도메인을 라즈베리파이의 backend(8000)로 연결하는 터널.
+  # react-bot.bssm.dev 공인 도메인을 라즈베리파이의 backend(8000)로 연결하는 터널.
   # 포트포워딩 없이도 Discord OAuth 콜백/봇 인증 코드 흐름이 동작하려면 필요하다.
   cloudflared:
     image: cloudflare/cloudflared:latest
